@@ -1,0 +1,281 @@
+{
+ "_说明": "Hand-maintained database list. When a name matches, the report shows the type's message as a \"database hint\". This is not evidence from the paper and does not change the access category. Entries are matched in order and the first match wins (so more specific entries come first). pattern is a regular expression; case_sensitive true means case-sensitive matching (e.g. Wind, to avoid matching wind speed).",
+ "types": {
+  "paid": {
+   "icon": "💰",
+   "message": "Commercial database; usually requires payment or an institutional subscription. Ask your university library whether it subscribes"
+  },
+  "gov_micro": {
+   "icon": "🔒",
+   "message": "Government microdata survey; individual-level data usually require a formal application or are unavailable. Aggregate figures can be found in published statistics"
+  },
+  "academic_survey": {
+   "icon": "🎓",
+   "message": "Academic survey database; usually requires registration and an application on the official site, and students can generally obtain it. Check that the survey years you need have been released"
+  },
+  "yearbook": {
+   "icon": "📚",
+   "message": "Statistical yearbook publications; usually available in libraries or on statistics bureau websites. Check that the years and geographic levels you need are complete (the edition year is usually one year later than the data year)"
+  },
+  "open_science": {
+   "icon": "🌐",
+   "message": "Data published by research institutions (e.g. NASA, climate models, satellite products); usually free to download from the official site, some require an account"
+  },
+  "public_disclosure": {
+   "icon": "📄",
+   "message": "Public disclosure documents (e.g. listed-company annual reports); usually free to download from exchange or disclosure websites, but you need to compile the data yourself"
+  },
+  "gov_portal": {
+   "icon": "🏛",
+   "message": "Data published by government departments; some can be queried or downloaded on the official site, some require registration or an application. Check the years and levels you need on the department's website"
+  },
+  "policy_doc": {
+   "icon": "📜",
+   "message": "Policy documents (lists, implementation dates, guidelines); usually publicly available on government websites, but you need to check and code the variables yourself"
+  },
+  "gov_public_micro": {
+   "icon": "🏛",
+   "message": "Public-use microdata published by a government statistics agency (e.g. the US CPS): public-use versions are usually free to download from the official site; finer geography or sensitive variables may require a separate restricted version. A survey series has several parts (e.g. ASEC, ORG, the basic monthly survey) with different content and years; check each paper's original name separately"
+  }
+ },
+ "databases": [
+  {
+   "type": "paid",
+   "name": "Wind",
+   "pattern": "\\bWIND\\b|\\bWind (database|Info|Information|Economic|Financial|Terminal)|万得",
+   "case_sensitive": true
+  },
+  {
+   "type": "paid",
+   "name": "CSMAR",
+   "pattern": "\\bCSMAR\\b|China Stock Market (and|&) Accounting Research|国泰安"
+  },
+  {
+   "type": "paid",
+   "name": "CNRDS",
+   "pattern": "\\bCNRDS\\b|Chinese Research Data Services"
+  },
+  {
+   "type": "paid",
+   "name": "RESSET",
+   "pattern": "\\bRESSET\\b"
+  },
+  {
+   "type": "paid",
+   "name": "CEIC",
+   "pattern": "\\bCEIC\\b"
+  },
+  {
+   "type": "paid",
+   "name": "iFinD (Tonghuashun)",
+   "pattern": "\\biFinD\\b|同花顺"
+  },
+  {
+   "type": "paid",
+   "name": "Choice (East Money)",
+   "pattern": "\\bChoice (database|Financial Terminal)\\b|东方财富"
+  },
+  {
+   "type": "paid",
+   "name": "EPS data platform",
+   "pattern": "\\bEPS (China )?Data\\b|EPS数据"
+  },
+  {
+   "type": "paid",
+   "name": "Compustat",
+   "pattern": "\\bCompustat\\b"
+  },
+  {
+   "type": "paid",
+   "name": "CRSP",
+   "pattern": "\\bCRSP\\b|Center for Research in Security Prices"
+  },
+  {
+   "type": "paid",
+   "name": "WRDS",
+   "pattern": "\\bWRDS\\b|Wharton Research Data Services"
+  },
+  {
+   "type": "paid",
+   "name": "Bloomberg",
+   "pattern": "\\bBloomberg\\b"
+  },
+  {
+   "type": "paid",
+   "name": "Refinitiv / Datastream / Eikon",
+   "pattern": "\\bRefinitiv\\b|\\bDatastream\\b|\\bEikon\\b|Thomson Reuters"
+  },
+  {
+   "type": "paid",
+   "name": "S&P Capital IQ",
+   "pattern": "\\bCapital IQ\\b"
+  },
+  {
+   "type": "paid",
+   "name": "FactSet",
+   "pattern": "\\bFactSet\\b"
+  },
+  {
+   "type": "paid",
+   "name": "Orbis / Osiris (Bureau van Dijk)",
+   "pattern": "\\bOrbis\\b|\\bOsiris\\b|Bureau van Dijk"
+  },
+  {
+   "type": "paid",
+   "name": "SDC Platinum",
+   "pattern": "\\bSDC\\b"
+  },
+  {
+   "type": "paid",
+   "name": "Haver Analytics",
+   "pattern": "\\bHaver\\b"
+  },
+  {
+   "type": "paid",
+   "name": "EIU (Economist Intelligence Unit)",
+   "pattern": "Economist Intelligence Unit|\\bEIU\\b"
+  },
+  {
+   "type": "gov_micro",
+   "name": "Urban/Rural Household Survey UHS/RHS (NBS China)",
+   "pattern": "\\b(Urban|Rural) Household Survey\\b|\\bUHS\\b|城镇住户调查"
+  },
+  {
+   "type": "gov_public_micro",
+   "name": "Current Population Survey (CPS) series",
+   "pattern": "Current Population Survey",
+   "case_sensitive": false
+  },
+  {
+   "type": "gov_micro",
+   "name": "Population census / 1% population sample survey",
+   "pattern": "\\b(China|Chinese)\\b[^.]{0,60}?\\bcensus(es)?\\b|\\bcensus(es)?\\b[^.]{0,60}?\\b(China|Chinese)\\b|人口普查|人口抽样调查",
+   "case_sensitive": false
+  },
+  {
+   "type": "gov_micro",
+   "name": "Disease Surveillance Points DSPs (China CDC)",
+   "pattern": "Disease Surveillance Point|\\bDSPs?\\b"
+  },
+  {
+   "type": "academic_survey",
+   "name": "China Family Panel Studies CFPS",
+   "pattern": "\\bCFPS\\b|China Family Panel Stud"
+  },
+  {
+   "type": "academic_survey",
+   "name": "China Health and Nutrition Survey CHNS",
+   "pattern": "\\bCHNS\\b|China Health and Nutrition Survey"
+  },
+  {
+   "type": "academic_survey",
+   "name": "China Health and Retirement Longitudinal Study CHARLS",
+   "pattern": "\\bCHARLS\\b|China Health and Retirement Longitudinal"
+  },
+  {
+   "type": "academic_survey",
+   "name": "Chinese General Social Survey CGSS",
+   "pattern": "\\bCGSS\\b|Chinese General Social Survey|China General Social Survey"
+  },
+  {
+   "type": "academic_survey",
+   "name": "China Labor-force Dynamics Survey CLDS",
+   "pattern": "\\bCLDS\\b|China Labou?r[- ]?force Dynamics? Survey"
+  },
+  {
+   "type": "academic_survey",
+   "name": "China Household Finance Survey CHFS",
+   "pattern": "\\bCHFS\\b|China Household Finance Survey"
+  },
+  {
+   "type": "academic_survey",
+   "name": "Chinese Household Income Project CHIP",
+   "pattern": "\\bCHIPs?\\b|China Household Income Project"
+  },
+  {
+   "type": "academic_survey",
+   "name": "PSID",
+   "pattern": "\\bPSID\\b|Panel Study of Income Dynamics"
+  },
+  {
+   "type": "academic_survey",
+   "name": "HRS",
+   "pattern": "\\bHRS\\b|Health and Retirement Study"
+  },
+  {
+   "type": "open_science",
+   "name": "MERRA-2 (NASA)",
+   "pattern": "\\bMERRA-?2?\\b|Modern-Era Retrospective"
+  },
+  {
+   "type": "open_science",
+   "name": "CMIP / climate model scenario data",
+   "pattern": "\\bCMIP\\d?\\b|Coupled Model Intercomparison|NorESM"
+  },
+  {
+   "type": "open_science",
+   "name": "ERA5 / ECMWF reanalysis data",
+   "pattern": "\\bERA-?5\\b|\\bECMWF\\b"
+  },
+  {
+   "type": "open_science",
+   "name": "WorldClim",
+   "pattern": "WorldClim"
+  },
+  {
+   "type": "open_science",
+   "name": "Satellite PM2.5 grids (Van Donkelaar et al. / SEDAC)",
+   "pattern": "Van Donkelaar|PM2\\.5 Grids|\\bSEDAC\\b|\\bMODIS\\b"
+  },
+  {
+   "type": "open_science",
+   "name": "NOAA weather data",
+   "pattern": "\\bNOAA\\b|\\bGHCN\\b|Global Surface Summary of the Day"
+  },
+  {
+   "type": "public_disclosure",
+   "name": "Listed-company annual reports",
+   "pattern": "annual reports? of (the )?(listed )?(compan|firm)|listed compan(y|ies)'?s? annual reports?|上市公司年报"
+  },
+  {
+   "type": "yearbook",
+   "name": "Statistical yearbooks",
+   "pattern": "Yearbook|Year Book|年鉴"
+  },
+  {
+   "type": "gov_portal",
+   "name": "National / local bureaus of statistics (China)",
+   "pattern": "National Bureau of Statistics|\\bNBS\\b|Bureaus? of Statistics|统计局"
+  },
+  {
+   "type": "gov_portal",
+   "name": "Statistics Canada",
+   "pattern": "Statistics Canada"
+  },
+  {
+   "type": "gov_portal",
+   "name": "Ministry of Ecology and Environment (China)",
+   "pattern": "Ministry of (Ecology and )?Environment(al Protection)?|\\bMEP\\b|\\bMEE\\b"
+  },
+  {
+   "type": "gov_portal",
+   "name": "China Meteorological Administration / National Meteorological Information Center",
+   "pattern": "Meteorological (Information|Data Service) Cent(er|re)|National Meteorological|\\bCMDSS\\b|China Meteorological"
+  },
+  {
+   "type": "gov_portal",
+   "name": "National Development and Reform Commission (China)",
+   "pattern": "Development and Reform Commission|\\bNDRC\\b"
+  },
+  {
+   "type": "gov_portal",
+   "name": "China Electricity Council",
+   "pattern": "China Electricity Council|\\bCEC\\b"
+  },
+  {
+   "type": "gov_portal",
+   "name": "Environment and Climate Change Canada",
+   "pattern": "Environment Canada"
+  }
+ ]
+}

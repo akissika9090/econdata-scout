@@ -1,0 +1,24 @@
+# environment and caches
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+.env
+.env.*
+
+# paper full texts (copyright) — never published
+*.pdf
+papers/
+runs/*/pdfs/
+runs/*/rejected/
+
+# private / stale working files
+Claude outputs/
+candidates/
+merged_report.md
+
+# job-hunting materials (personal) — not published
+private/
+
+# release tooling (not published)
+tools/

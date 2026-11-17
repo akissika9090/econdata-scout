@@ -1,0 +1,115 @@
+{
+  "model": "Gemini (gemini-3.5-flash-lite)",
+  "mode": "候选段落",
+  "ai_raw": {
+    "data_sources": [
+      {
+        "name": "Canadian LFS",
+        "role": "main",
+        "kind": "dataset",
+        "provider": null,
+        "sample_period": "July 2001–June 2015",
+        "period_evidence": {
+          "quote": "The present study utilizes the public-use ﬁles of the Canadian LFS (July 2001–June 2015).",
+          "page": 4
+        },
+        "unit": "individual",
+        "access_category": "public",
+        "source_evidence": {
+          "quote": "The present study utilizes the public-use ﬁles of the Canadian LFS (July 2001–June 2015).",
+          "page": 4
+        },
+        "access_evidence": {
+          "quote": "The present study utilizes the public-use ﬁles of the Canadian LFS (July 2001–June 2015).",
+          "page": 4
+        }
+      },
+      {
+        "name": "NBER Productivity Database",
+        "role": "robustness",
+        "kind": "dataset",
+        "provider": "NBER",
+        "sample_period": null,
+        "period_evidence": null,
+        "unit": "industry",
+        "access_category": "unknown",
+        "source_evidence": {
+          "quote": "I merge the LFS data with three-digit industry energy intensity from NBER Productivity Database.",
+          "page": 13
+        },
+        "access_evidence": null
+      }
+    ],
+    "sample_limitations": [],
+    "availability_statement": {
+      "quote": "Supplementary data related to this article can be found at https://doi.org/10.1016/j.jeem.2018.03.004.",
+      "page": 16
+    }
+  },
+  "report": {
+    "data_sources": [
+      {
+        "name": "Canadian LFS",
+        "role": "main",
+        "kind": "dataset",
+        "provider": null,
+        "sample_period": "July 2001–June 2015",
+        "period_evidence": {
+          "quote": "The present study utilizes the public-use ﬁles of the Canadian LFS (July 2001–June 2015).",
+          "page": 4,
+          "verified": true
+        },
+        "unit": "individual",
+        "access_category": "unknown",
+        "source_evidence": {
+          "quote": "The present study utilizes the public-use ﬁles of the Canadian LFS (July 2001–June 2015).",
+          "page": 4,
+          "verified": true
+        },
+        "access_evidence": {
+          "quote": "The present study utilizes the public-use ﬁles of the Canadian LFS (July 2001–June 2015).",
+          "page": 4,
+          "verified": true
+        },
+        "rule_notes": [
+          "引用的原文存在，但其中没有支持该分类的说法，已降级为“论文未说明”"
+        ],
+        "db_hint": null,
+        "paid_hint": null,
+        "urls": [],
+        "ai_category": "public",
+        "downgraded": "引用的原文存在，但其中没有支持该分类的说法，已降级为“论文未说明”",
+        "evidence_scope": "none"
+      },
+      {
+        "name": "NBER Productivity Database",
+        "role": "robustness",
+        "kind": "dataset",
+        "provider": "NBER",
+        "sample_period": null,
+        "period_evidence": null,
+        "unit": "industry",
+        "access_category": "unknown",
+        "source_evidence": {
+          "quote": "I merge the LFS data with three-digit industry energy intensity from NBER Productivity Database.",
+          "page": 13,
+          "verified": true
+        },
+        "access_evidence": null,
+        "rule_notes": [],
+        "db_hint": null,
+        "paid_hint": null,
+        "urls": [],
+        "ai_category": "unknown",
+        "evidence_scope": "none"
+      }
+    ],
+    "availability_statement": {
+      "quote": "Supplementary data related to this article can be found at https://doi.org/10.1016/j.jeem.2018.03.004.",
+      "page": 16,
+      "verified": true
+    },
+    "sample_limitations": [],
+    "rejected_limitations": []
+  }
+}

@@ -1,0 +1,395 @@
+{
+  "method": "A",
+  "paper": "Liebman1998",
+  "pdf": "runs/20261106_114218/pdfs/W1586548773.pdf",
+  "model": "gemini-3.1-flash-lite",
+  "mode": "全文（未找到数据章节）",
+  "input_sha256": "45bec0b89e54e497f9ec2e9cdaea1ec4888c350cc217382f35dfa0bcbdd4feb2",
+  "input_chars": 79100,
+  "started": "2026-11-06T14:21:26",
+  "attempts": [
+    {
+      "tag": "A_Liebman1998",
+      "attempt": 1,
+      "model": "gemini-3.1-flash-lite",
+      "time": "2026-11-06T14:21:26",
+      "seconds": 4.7,
+      "outcome": "ok"
+    }
+  ],
+  "n_requests": 1,
+  "total_seconds": 5.1,
+  "raw": {
+    "data_sources": [
+      {
+        "name": "Committee on Ways and Means (1996) data",
+        "role": "main",
+        "kind": "dataset",
+        "provider": "Committee on Ways and Means",
+        "sample_period": "1975–2000",
+        "period_evidence": {
+          "quote": "FIGURE 1. Federal Cost of AFDC and the EITC, 1975-2000",
+          "page": 6
+        },
+        "unit": "national",
+        "access_category": "unknown",
+        "source_evidence": {
+          "quote": "Source: Committee on Ways and Means (1996).",
+          "page": 6
+        },
+        "access_evidence": null,
+        "access_applies_to": null,
+        "usage": "analyzed",
+        "usage_evidence": {
+          "quote": "Figure 1 shows that in this period the federal cost of the EITC (including both outlays and tax expenditures) was substantially below federal spending on the main cash welfare program for families with children, AFDC.",
+          "page": 6
+        },
+        "period_form": "range",
+        "period_years": [
+          1975,
+          2000
+        ]
+      },
+      {
+        "name": "March Current Population Surveys (CPS)",
+        "role": "main",
+        "kind": "dataset",
+        "provider": "Bureau of the Census",
+        "sample_period": "1976–1997",
+        "period_evidence": {
+          "quote": "Source: Author's calculations from the 1977 and 1997 March Current Population Surveys.",
+          "page": 14
+        },
+        "unit": "household",
+        "access_category": "unknown",
+        "source_evidence": {
+          "quote": "Source: Author's calculations from the 1977 and 1997 March Current Population Surveys.",
+          "page": 14
+        },
+        "access_evidence": null,
+        "access_applies_to": null,
+        "usage": "analyzed",
+        "usage_evidence": {
+          "quote": "Table 2 displays the share of income accruing to each quintile of the income distribution in 1976 and 1996.",
+          "page": 15
+        },
+        "period_form": "discrete",
+        "period_years": [
+          1977,
+          1997
+        ]
+      },
+      {
+        "name": "IRS Statistics of Income public use sample",
+        "role": "main",
+        "kind": "dataset",
+        "provider": "Internal Revenue Service",
+        "sample_period": "1992",
+        "period_evidence": {
+          "quote": "Figure 8 shows the distribution of tax returns by income from the IRS Statistics of Income public use sample of 1992 tax returns.",
+          "page": 104
+        },
+        "unit": "taxpayer",
+        "access_category": "unknown",
+        "source_evidence": {
+          "quote": "Figure 8 shows the distribution of tax returns by income from the IRS Statistics of Income public use sample of 1992 tax returns.",
+          "page": 104
+        },
+        "access_evidence": null,
+        "access_applies_to": null,
+        "usage": "analyzed",
+        "usage_evidence": {
+          "quote": "Figure 8 shows the distribution of tax returns by income from the IRS Statistics of Income public use sample of 1992 tax returns.",
+          "page": 104
+        },
+        "period_form": "single",
+        "period_years": [
+          1992
+        ]
+      },
+      {
+        "name": "IRS Taxpayer Compliance Measurement Program (TCMP)",
+        "role": "main",
+        "kind": "dataset",
+        "provider": "Internal Revenue Service",
+        "sample_period": "1985–1988",
+        "period_evidence": {
+          "quote": "Tabulations from the IRS's Taxpayer Compliance Measurement Program (TCMP), first presented by Holtzblatt (1991) and Scholz (1990), indicate that one-third of 1985 and 1988 recipients were ineligible for the credit",
+          "page": 112
+        },
+        "unit": "taxpayer",
+        "access_category": "unknown",
+        "source_evidence": {
+          "quote": "Tabulations from the IRS's Taxpayer Compliance Measurement Program (TCMP), first presented by Holtzblatt (1991) and Scholz (1990), indicate that one-third of 1985 and 1988 recipients were ineligible for the credit",
+          "page": 112
+        },
+        "access_evidence": null,
+        "access_applies_to": null,
+        "usage": "analyzed",
+        "usage_evidence": {
+          "quote": "My data for this study were 1985 and 1988 cross sections from the IRS's Taxpayer Compliance Measurement Program.",
+          "page": 115
+        },
+        "period_form": "discrete",
+        "period_years": [
+          1985,
+          1988
+        ]
+      }
+    ],
+    "sample_limitations": [
+      {
+        "quote": "Because tax return data contain extremely limited information about taxpayers beyond their income, researchers studying the EITC have become temporary Census Bureau employees in order to use special data sets that match census data to the tax returns of census respondents.",
+        "page": 8
+      },
+      {
+        "quote": "Unfortunately, the IRS has stopped releasing additional years of the Michigan tax panel data set, so there is no evidence on EITC dynamics after the recent expansions.",
+        "page": 107
+      }
+    ],
+    "availability_statement": null
+  },
+  "status": "ok",
+  "report_markdown": "# 数据来源汇总（多篇论文合并）\n\n- **获取**：能不能拿到这个数据。论文有直接证据时以论文为准；只有论文总体声明时结论减弱；论文没写时参考工具内置的数据库清单，并注明依据。\n- **覆盖**：拿到的数据够不够用。这里只能给出前人论文的样本年份和“因数据原因缩小样本”的说法，不代表数据库实际覆盖的年份、地区和变量，仍需自行核对。\n- **模型判断**：使用关系（本文使用 / 引用他人 / 介绍）、期间属于哪个数据、条件适用于哪一部分，都是模型的判断；程序只核对引用逐字存在、单句、点名和年份结构，不证明这些语义判断正确。\n\n## Committee on Ways and Means data　（1 篇论文使用）\n- **获取：无法判断**（依据：论文中未说明，工具清单中也没有这个数据——未找到说明）\n  - 论文证据：所有论文都没有说明获取条件\n- **覆盖：**论文中没有提到覆盖问题（不代表数据完整，请核对需要的变量、年份和地区）\n  - 前人论文的样本年份（期间属于该数据是模型的判断）：最晚用到 2000 年（Liebman1998）\n    - 1975–2000（连续区间，期间形态与原文一致；Liebman1998） —— 第6页：“FIGURE 1. Federal Cost of AFDC and the EITC, 1975-2000”\n- 各篇论文：\n  - Liebman1998：【未找到说明】Committee on Ways and Means (1996) data\n\n## IRS Statistics of Income public use sample　（1 篇论文使用）\n- **获取：无法判断**（依据：论文中未说明，工具清单中也没有这个数据——有词面线索，未确认）\n  - 论文证据：所有论文都没有说明获取条件\n- **覆盖：**论文中没有提到覆盖问题（不代表数据完整，请核对需要的变量、年份和地区）\n  - 前人论文的样本年份（期间属于该数据是模型的判断）：最晚用到 1992 年（Liebman1998）\n    - 1992（单年，期间形态与原文一致；Liebman1998） —— 第24页：“Figure 8 shows the distribution of tax returns by income from the IRS Statistics of Income public use sample of 1992 tax returns.”\n- 各篇论文：\n  - Liebman1998：【有词面线索，未确认】IRS Statistics of Income public use sample —— 第24页（需要人工复核：来源句中有“公开”类词语（模型未判断；程序不能确认它描述的是这个数据的获取条件，词语涉及的对象：public use sample））：“Figure 8 shows the distribution of tax returns by income from the IRS Statistics of Income public use sample of 1992 tax returns.”\n\n## IRS Taxpayer Compliance Measurement Program　（1 篇论文使用）\n- **获取：无法判断**（依据：论文中未说明，工具清单中也没有这个数据——未找到说明）\n  - 论文证据：所有论文都没有说明获取条件\n- **覆盖：**论文中没有提到覆盖问题（不代表数据完整，请核对需要的变量、年份和地区）\n  - 前人论文的样本年份（期间属于该数据是模型的判断）：最晚用到 1988 年（Liebman1998）\n    - 1985–1988（离散年份，期间形态与原文一致；Liebman1998） —— 第31页：“Tabulations from the IRS's Taxpayer Compliance Measurement Program (TCMP), first presented by Holtzblatt (1991) and Scholz (1990), indicate that one-third of 1985 and 1988 recipients were ineligible for the credit”；覆盖比较只使用列出的年份，不生成连续区间\n- 各篇论文：\n  - Liebman1998：【未找到说明】IRS Taxpayer Compliance Measurement Program (TCMP)\n\n## 使用关系待确认\n以下记录的使用关系无法确认（模型判断为无法确定，或依据在原文中找不到），不参与“本文使用”计数和覆盖比较。\n\n- Liebman1998：March Current Population Surveys (CPS)（使用关系的依据无法在原文中找到） —— 第14页：“Source: Author's calculations from the 1977 and 1997 March Current Population Surveys.”\n\n## 论文级的样本限制（归属待核实）\n以下说法没有点名具体数据，程序无法确认它们属于哪个数据源，请看原文判断。\n\n- Liebman1998 第7页：“Because tax return data contain extremely limited information about taxpayers beyond their income, researchers studying the EITC have become temporary Census Bureau employees in order to use special data sets that match census data to the tax returns of census respondents.”\n- Liebman1998 第26页：“Unfortunately, the IRS has stopped releasing additional years of the Michigan tax panel data set, so there is no evidence on EITC dynamics after the recent expansions.”\n",
+  "processed": {
+    "data_sources": [
+      {
+        "name": "Committee on Ways and Means (1996) data",
+        "role": "main",
+        "kind": "dataset",
+        "provider": "Committee on Ways and Means",
+        "sample_period": "1975–2000",
+        "period_evidence": {
+          "quote": "FIGURE 1. Federal Cost of AFDC and the EITC, 1975-2000",
+          "page": 6,
+          "verified": true
+        },
+        "unit": "national",
+        "access_category": "unknown",
+        "source_evidence": {
+          "quote": "Source: Committee on Ways and Means (1996).",
+          "page": 6,
+          "verified": true
+        },
+        "access_evidence": null,
+        "access_applies_to": null,
+        "usage": "analyzed",
+        "usage_evidence": {
+          "quote": "Figure 1 shows that in this period the federal cost of the EITC (including both outlays and tax expenditures) was substantially below federal spending on the main cash welfare program for families with children, AFDC.",
+          "page": 6,
+          "verified": true
+        },
+        "period_form": "range",
+        "period_years": [
+          1975,
+          2000
+        ],
+        "rule_notes": [],
+        "period_form_inferred": false,
+        "db_hint": null,
+        "paid_hint": null,
+        "urls": [],
+        "ai_category": "unknown",
+        "evidence_scope": "none",
+        "verification": "none",
+        "needs_review": false,
+        "access_scope": null,
+        "access_origin": null,
+        "usage_legacy": false,
+        "usage_group": "analyzed"
+      },
+      {
+        "name": "IRS Statistics of Income public use sample",
+        "role": "main",
+        "kind": "dataset",
+        "provider": "Internal Revenue Service",
+        "sample_period": "1992",
+        "period_evidence": {
+          "quote": "Figure 8 shows the distribution of tax returns by income from the IRS Statistics of Income public use sample of 1992 tax returns.",
+          "page": 24,
+          "page_given": 104,
+          "verified": true
+        },
+        "unit": "taxpayer",
+        "access_category": "unknown",
+        "source_evidence": {
+          "quote": "Figure 8 shows the distribution of tax returns by income from the IRS Statistics of Income public use sample of 1992 tax returns.",
+          "page": 24,
+          "page_given": 104,
+          "verified": true
+        },
+        "access_evidence": null,
+        "access_applies_to": null,
+        "usage": "analyzed",
+        "usage_evidence": {
+          "quote": "Figure 8 shows the distribution of tax returns by income from the IRS Statistics of Income public use sample of 1992 tax returns.",
+          "page": 24,
+          "page_given": 104,
+          "verified": true
+        },
+        "period_form": "single",
+        "period_years": [
+          1992
+        ],
+        "rule_notes": [
+          "source_evidence：引用逐字出现在第24页（模型写的是第104页），已更正页码",
+          "period_evidence：引用逐字出现在第24页（模型写的是第104页），已更正页码",
+          "来源句中有“公开”类词语（模型未判断；程序不能确认它描述的是数据的获取条件），需要人工复核"
+        ],
+        "period_form_inferred": false,
+        "db_hint": null,
+        "paid_hint": null,
+        "urls": [],
+        "ai_category": "unknown",
+        "evidence_scope": "none",
+        "verification": "none",
+        "needs_review": true,
+        "access_scope": null,
+        "access_origin": null,
+        "candidate": {
+          "categories": [
+            "public"
+          ],
+          "evidence": {
+            "quote": "Figure 8 shows the distribution of tax returns by income from the IRS Statistics of Income public use sample of 1992 tax returns.",
+            "page": 24,
+            "page_given": 104,
+            "verified": true
+          },
+          "from": "source_evidence",
+          "scope": "public use sample",
+          "conflict": false
+        },
+        "usage_legacy": false,
+        "usage_group": "analyzed"
+      },
+      {
+        "name": "IRS Taxpayer Compliance Measurement Program (TCMP)",
+        "role": "main",
+        "kind": "dataset",
+        "provider": "Internal Revenue Service",
+        "sample_period": "1985–1988",
+        "period_evidence": {
+          "quote": "Tabulations from the IRS's Taxpayer Compliance Measurement Program (TCMP), first presented by Holtzblatt (1991) and Scholz (1990), indicate that one-third of 1985 and 1988 recipients were ineligible for the credit",
+          "page": 31,
+          "page_given": 112,
+          "verified": true
+        },
+        "unit": "taxpayer",
+        "access_category": "unknown",
+        "source_evidence": {
+          "quote": "Tabulations from the IRS's Taxpayer Compliance Measurement Program (TCMP), first presented by Holtzblatt (1991) and Scholz (1990), indicate that one-third of 1985 and 1988 recipients were ineligible for the credit",
+          "page": 31,
+          "page_given": 112,
+          "verified": true
+        },
+        "access_evidence": null,
+        "access_applies_to": null,
+        "usage": "analyzed",
+        "usage_evidence": {
+          "quote": "My data for this study were 1985 and 1988 cross sections from the IRS's Taxpayer Compliance Measurement Program.",
+          "page": 34,
+          "page_given": 115,
+          "verified": true
+        },
+        "period_form": "discrete",
+        "period_years": [
+          1985,
+          1988
+        ],
+        "rule_notes": [
+          "source_evidence：引用逐字出现在第31页（模型写的是第112页），已更正页码",
+          "period_evidence：引用逐字出现在第31页（模型写的是第112页），已更正页码"
+        ],
+        "period_form_inferred": false,
+        "db_hint": null,
+        "paid_hint": null,
+        "urls": [],
+        "ai_category": "unknown",
+        "evidence_scope": "none",
+        "verification": "none",
+        "needs_review": false,
+        "access_scope": null,
+        "access_origin": null,
+        "usage_legacy": false,
+        "usage_group": "analyzed"
+      }
+    ],
+    "referenced": [],
+    "usage_pending": [
+      {
+        "name": "March Current Population Surveys (CPS)",
+        "role": "main",
+        "kind": "dataset",
+        "provider": "Bureau of the Census",
+        "sample_period": "1976–1997",
+        "period_evidence": {
+          "quote": "Source: Author's calculations from the 1977 and 1997 March Current Population Surveys.",
+          "page": 14,
+          "verified": true
+        },
+        "unit": "household",
+        "access_category": "unknown",
+        "source_evidence": {
+          "quote": "Source: Author's calculations from the 1977 and 1997 March Current Population Surveys.",
+          "page": 14,
+          "verified": true
+        },
+        "access_evidence": null,
+        "access_applies_to": null,
+        "usage": "analyzed",
+        "usage_evidence": {
+          "quote": "Table 2 displays the share of income accruing to each quintile of the income distribution in 1976 and 1996.",
+          "page": 15,
+          "verified": false
+        },
+        "period_form": "discrete",
+        "period_years": [
+          1977,
+          1997
+        ],
+        "rule_notes": [
+          "期间形态未核实：显示的期间和年份字段不一致",
+          "使用关系待确认：使用关系的依据无法在原文中找到"
+        ],
+        "period_unverified": true,
+        "period_form_inferred": false,
+        "period_form_unverified": true,
+        "period_form_note": "期间形态未核实：显示的期间和年份字段不一致",
+        "db_hint": {
+          "type": "gov_public_micro",
+          "name": "Current Population Survey (CPS) 系列",
+          "icon": "🏛",
+          "message": "政府统计机构发布的公共使用微观数据（如美国 CPS）：公共使用版本通常可在官网免费下载，更细的地理信息或敏感变量可能需要另外申请受限版本。同一调查系列包含多个部分（如 ASEC、ORG、月度基本调查），内容和年份不同，请按各论文的原始名称分别核对"
+        },
+        "paid_hint": null,
+        "urls": [],
+        "ai_category": "unknown",
+        "evidence_scope": "none",
+        "verification": "none",
+        "needs_review": false,
+        "access_scope": null,
+        "access_origin": null,
+        "usage_legacy": false,
+        "usage_group": "pending"
+      }
+    ],
+    "other_mentions": [],
+    "availability_statement": null,
+    "sample_limitations": [
+      {
+        "quote": "Because tax return data contain extremely limited information about taxpayers beyond their income, researchers studying the EITC have become temporary Census Bureau employees in order to use special data sets that match census data to the tax returns of census respondents.",
+        "page": 7,
+        "page_given": 8,
+        "verified": true
+      },
+      {
+        "quote": "Unfortunately, the IRS has stopped releasing additional years of the Michigan tax panel data set, so there is no evidence on EITC dynamics after the recent expansions.",
+        "page": 26,
+        "page_given": 107,
+        "verified": true
+      }
+    ],
+    "rejected_limitations": []
+  }
+}

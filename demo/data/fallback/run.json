@@ -1,0 +1,188 @@
+{
+  "topic": "climate change and economic growth",
+  "run_dir": "runs/20261106_113629",
+  "agent": false,
+  "papers": [
+    {
+      "id": "W2301419888",
+      "title": "Climate change, adaptation and economic growth",
+      "url": "https://researchonline.lse.ac.uk/id/eprint/39939/1/__lse.ac.uk_storage_LIBRARY_Secondary_libfile_shared_repository_Content_Bowen%2C%20A_Climate%20change_Bowen_Climate%20change_2015.pdf",
+      "landing_url": "https://orcid.org/0000-0003-2100-7888>",
+      "version_openalex": "submittedVersion",
+      "version_note": "OpenAlex metadata, not verified",
+      "http_status": 200,
+      "bytes": 738601,
+      "pages": 22,
+      "path": "runs/20261106_113629/pdfs/W2301419888.pdf",
+      "status": "ok",
+      "label": "Bowen2011",
+      "year": 2011,
+      "venue": "Climatic Change",
+      "origin": "open access (OpenAlex)",
+      "analysis": {
+        "status": "extracted",
+        "model": "Gemini (gemini-3.1-flash-lite)"
+      }
+    },
+    {
+      "id": "W2135766677",
+      "title": "Economic Impacts of Climate Variability in South Africa and Development of Resource Prediction Models",
+      "url": "https://journals.ametsoc.org/downloadpdf/journals/apme/41/1/1520-0450_2002_041_0046_eiocvi_2.0.co_2.pdf",
+      "landing_url": "https://doi.org/10.1175/1520-0450(2002)041<0046:eiocvi>2.0.co;2",
+      "version_openalex": "publishedVersion",
+      "version_note": "OpenAlex metadata, not verified",
+      "http_status": 403,
+      "status": "http_403",
+      "detail": "HTTP 403",
+      "label": "Jury2002",
+      "year": 2002,
+      "venue": "Journal of applied meteorology",
+      "origin": "open access (OpenAlex)"
+    },
+    {
+      "id": "W4399974184",
+      "title": "Climate change, economic growth and financialization: current status",
+      "url": "https://economics.ihbt.ifmo.ru/file/article/22807.pdf",
+      "landing_url": "https://doi.org/10.17586/2310-1172-2024-18-2-32-47",
+      "version_openalex": "publishedVersion",
+      "version_note": "OpenAlex metadata, not verified",
+      "http_status": 200,
+      "bytes": 756211,
+      "pages": 16,
+      "path": "runs/20261106_113629/pdfs/W4399974184.pdf",
+      "status": "ok",
+      "label": "Unknown2024",
+      "year": 2024,
+      "venue": "Economics and Environmental Management",
+      "origin": "open access (OpenAlex)",
+      "analysis": {
+        "status": "extracted",
+        "model": "Gemini (gemini-3.1-flash-lite)"
+      }
+    }
+  ],
+  "upload_suggested": [
+    {
+      "id": "W2146575252",
+      "title": "On climate change and economic growth",
+      "year": 2004,
+      "authors": [
+        "Samuel Fankhauser",
+        "Richard S.J. Tol"
+      ],
+      "venue": "Resource and Energy Economics",
+      "doi": "https://doi.org/10.1016/j.reseneeco.2004.03.003",
+      "cited_by": 436,
+      "abstract": null,
+      "is_oa": false,
+      "pdf_url": null,
+      "landing_url": "https://doi.org/10.1016/j.reseneeco.2004.03.003",
+      "oa_version": null,
+      "relevance": 3,
+      "policy_match": "same",
+      "outcome_match": "same",
+      "uses_data": "unclear",
+      "study_area": "not stated",
+      "reason": "The title matches the research direction, but there is no abstract.",
+      "access": "upload"
+    },
+    {
+      "id": "W3005573512",
+      "title": "THE ECONOMIC IMPACTS OF GLOBAL WARMING ON CHINESE CITIES",
+      "year": 2020,
+      "authors": [
+        "Xiao-Chen Yuan",
+        "Zhiming Yang",
+        "Yi‐Ming Wei"
+      ],
+      "venue": "Climate Change Economics",
+      "doi": "https://doi.org/10.1142/s2010007820500074",
+      "cited_by": 11,
+      "abstract": null,
+      "is_oa": false,
+      "pdf_url": null,
+      "landing_url": "https://doi.org/10.1142/s2010007820500074",
+      "oa_version": null,
+      "relevance": 3,
+      "policy_match": "same",
+      "outcome_match": "same",
+      "uses_data": "yes",
+      "study_area": "China",
+      "reason": "The paper empirically identifies the effects of global warming on economic output in Chinese cities.",
+      "access": "upload"
+    },
+    {
+      "id": "W2052702668",
+      "title": "Climate change, economic growth and energy policy: A recommended U.S. strategy for the coming decades an editorial",
+      "year": 1988,
+      "authors": [
+        "Alan D. Hecht",
+        "BoR. D��s"
+      ],
+      "venue": "Climatic Change",
+      "doi": "https://doi.org/10.1007/bf00140158",
+      "cited_by": 4,
+      "abstract": null,
+      "is_oa": false,
+      "pdf_url": null,
+      "landing_url": "https://doi.org/10.1007/bf00140158",
+      "oa_version": null,
+      "relevance": 3,
+      "policy_match": "same",
+      "outcome_match": "same",
+      "uses_data": "unclear",
+      "study_area": "United States",
+      "reason": "The title matches the research direction, but there is no abstract.",
+      "access": "upload"
+    },
+    {
+      "id": "W2017899312",
+      "title": "Climate change, economic growth and sustainability: issues, Australian dynamic integrated general equilibrium model and policy options",
+      "year": 2004,
+      "authors": [
+        "Sardar M. N. Islam"
+      ],
+      "venue": "International Journal of Environment and Sustainable Development",
+      "doi": "https://doi.org/10.1504/ijesd.2004.004702",
+      "cited_by": 1,
+      "abstract": null,
+      "is_oa": false,
+      "pdf_url": null,
+      "landing_url": "https://doi.org/10.1504/ijesd.2004.004702",
+      "oa_version": null,
+      "relevance": 3,
+      "policy_match": "same",
+      "outcome_match": "same",
+      "uses_data": "yes",
+      "study_area": "Australia",
+      "reason": "The paper develops a model to analyze climate change and economic growth in Australia.",
+      "access": "upload"
+    },
+    {
+      "id": "W2226177449",
+      "title": "Climate Change, Economic Growth, and Political Violence",
+      "year": 2010,
+      "authors": [
+        "Thomas Bernauer",
+        "Vally Koubi",
+        "Gabriele Ruoff"
+      ],
+      "venue": null,
+      "doi": null,
+      "cited_by": 0,
+      "abstract": null,
+      "is_oa": false,
+      "pdf_url": null,
+      "landing_url": "http://citation.allacademic.com/meta/p413949_index.html",
+      "oa_version": null,
+      "relevance": 3,
+      "policy_match": "same",
+      "outcome_match": "same",
+      "uses_data": "unclear",
+      "study_area": "not stated",
+      "reason": "The title matches the research direction, but there is no abstract.",
+      "access": "upload"
+    }
+  ],
+  "report": "runs/20261106_113629/report.md"
+}
