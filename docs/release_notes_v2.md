@@ -34,6 +34,13 @@ Independent tests: three new research directions, each scored on its **first run
 | 5 | Trade liberalisation and wage inequality | v2.5a | 3 / 3 (downloaded by hand) | 4 / 5 | 4 / 9 | 0 |
 | **Total (first runs, three rule versions)** | | | | **7 / 13** | **7 / 17** (6 / 17 by exact product) | **0** |
 
+**What the two questions measure, and what they do not.** The scoring is coarse, so read the numbers with these definitions:
+
+- *Is there data?* The tool counts as answering "yes" whenever it returns an official page that passed the program's checks; it answers "no" only when the page says the data is discontinued. In practice this question measures whether the tool found the provider's page for the data, not a separate judgement of whether the data can be obtained.
+- *Where from?* is scored by website domain only (see the World Bank example below).
+- **The access channel, eligibility and restrictions shown in the report (public download, registration, subscription, purchase, apply to the provider) were not scored in rounds 3–5.** They were scored only in the pilot (channel agreed in 6 of 7, eligibility 4 of 4; see [evaluation.md](evaluation.md#5-v2-official-site-check-pilot)), whose rules were tuned on the same sources. Whether a particular user (e.g. a student) can obtain the data is not assessed.
+- Because of these definitions, "0 wrong answers" is a low bar: it means no answered item pointed to the wrong provider site or wrongly said the data exists.
+
 - **In this sample, under the fixed scoring rules, 0 wrong answers were observed among the items the tool answered.** This is 17 data sources in 6 papers; it is not evidence that the tool cannot be wrong.
 - Not every miss comes with a lead. When the official-site check runs and finds nothing, the report says "please check this yourself" and lists the pages reached. The 4 sources missed at the extraction step never reached the official-site check, so the report gives no lead for them.
 - **Big public providers are answered well**: US federal statistics (BEA, EIA, BLS), World Bank, UNCTAD, university data projects, and commercial databases whose site names the product (CMIE Prowess).
@@ -66,6 +73,8 @@ The v2.5–v2.5b fixes were checked by replaying saved model answers and saved p
 - **"Please check this yourself" with leads** (v2.5): when the check finds no answer, the report lists the pages submitted but not accepted (with the reason) and the pages read.
 - **Distributor sites** (v2.5a): see above.
 - **Sources tables** (v2.5b): a short table-cell entry under a table that mentions sources counts as a data source, not a variable.
+- **Uploaded PDFs matched to search results** (2026-11-18, `scout.py` only; check rules unchanged): a PDF passed with `--pdf` is matched to the paper it belongs to by DOI or full title on its first two pages, keeps that paper's name, and is no longer listed as "not analysed"; a second copy of a paper already read is skipped.
+- **V2 demo** (`python demo/replay.py official`): saved report of a real run on air pollution and labour productivity in China, with the errors found by hand listed in demo/README.md.
 - **Two-question scoring**: the test rounds were scored with an internal script that is not part of the public package.
 
 ## Known limitations

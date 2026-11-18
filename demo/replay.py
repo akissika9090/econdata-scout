@@ -4,6 +4,8 @@ Offline demos. No API call, no key, no network.
 Default mode — saved-result replay, NOT re-verified (works in a fresh copy of the repository):
     python demo/replay.py normal      # shows the saved report demo/outputs/normal.md
     python demo/replay.py review      # shows the saved report demo/outputs/review.md
+    python demo/replay.py official    # V2: shows the saved report demo/outputs/official.md (two-column report with
+                                      # the official-site check, real run of 2026-11-18)
     python demo/replay.py fallback    # replays the saved run record of a real run: download status, error reasons,
                                       # model fallback, and the run continuing (from demo/data/fallback/)
 
@@ -111,11 +113,11 @@ def main() -> int:
     case = args[0] if args else ""
     if case == "fallback" and len(args) == 1:
         return fallback()
-    if case in CASES and len(args) == 1:
+    if case in CASES and len(args) == 1 or case == "official" and len(args) == 1:
         return show_saved(case)
     if case in CASES and args[1:] == ["--reverify"]:
         return reverify(case)
-    print("usage: python demo/replay.py normal|review|fallback   (add --reverify to normal/review to re-check with local PDFs)")
+    print("usage: python demo/replay.py normal|review|official|fallback   (add --reverify to normal/review to re-check with local PDFs)")
     return 2
 
 

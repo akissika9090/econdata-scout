@@ -50,6 +50,35 @@ def paper_label(paper: dict, used: set) -> str:
     return label
 
 
+def _norm(text: str) -> str:
+    """配对用：小写、只留字母数字、合并空白（PDF 断行和连字符不影响）。"""
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", (text or "").lower().replace("-\n", "")).split())
+
+
+def first_pages_text(path: str, pages: int = 2) -> str:
+    """读上传 PDF 前两页的文字，只用来和检索结果配对；读不了返回空字符串（照常按文件名处理）。"""
+    try:
+        import pymupdf
+        with pymupdf.open(path) as doc:
+            return "\n".join(doc[i].get_text() for i in range(min(pages, len(doc))))
+    except Exception:
+        return ""
+
+
+def match_upload(text: str, candidates: list[dict]) -> dict | None:
+    """上传的 PDF 是不是检索到但没能读到的某篇论文：前两页出现该论文的 DOI，或出现完整标题（至少 4 个词）。
+    只认唯一匹配；对不上或对上多篇就返回 None，按文件名单独处理。"""
+    body, hits = _norm(text), []
+    for c in candidates:
+        doi = re.sub(r"^https?://(dx\.)?doi\.org/", "", (c.get("doi") or c.get("landing_url") or "").strip(), flags=re.I)
+        doi_hit = doi.lower().startswith("10.") and _norm(doi) in body
+        title = _norm(c.get("title"))
+        title_hit = len(title.split()) >= 4 and title in body
+        if doi_hit or title_hit:
+            hits.append(c)
+    return hits[0] if len(hits) == 1 else None
+
+
 def save_json(path: str, data) -> None:
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
@@ -105,13 +134,45 @@ def run(topic: str, use_agent: bool = False, extra_pdfs: list[str] | None = None
         rec = fetch_fulltext.fetch_one(c, run_dir, get=get)
         papers.append({**rec, "label": paper_label(c, used), "year": c.get("year"), "venue": c.get("venue"),
                        "origin": "open access (OpenAlex)", "study_area": c.get("study_area")})
+    # 用户上传的 PDF 先和“下载失败”“需要上传”的论文配对（DOI 或完整标题），配上的沿用那篇论文的简称和书目信息，
+    # 不再在报告末尾列为“未分析”；配不上的按文件名单独列出。
+    to_upload = list(found.get("upload", []))
+    uploaded_note = "uploaded by the user; version not checked"
+    duplicate_uploads = []
     for path in extra_pdfs or []:
-        label = paper_label({"authors": [os.path.splitext(os.path.basename(path))[0]], "year": ""}, used)
-        dest = os.path.join(run_dir, "pdfs", f"{label}.pdf")
+        failed = [p for p in papers if p["status"] != "ok"]
+        downloaded = [p for p in papers if p["status"] == "ok"]
+        hit = match_upload(first_pages_text(path), failed + to_upload + downloaded)
+        if hit is not None and any(hit is p for p in downloaded):
+            # 同一篇已经自动下载成功（或前面上传过）：不再分析第二遍，否则同一篇论文会被算成两篇
+            duplicate_uploads.append({"file": os.path.basename(path), "same_as": hit["label"]})
+            print(f"  = {os.path.basename(path)}: same paper as {hit['label']} (already read) - not analysed twice")
+            continue
+        if hit is not None and any(hit is p for p in failed):
+            paper = hit
+            paper.update({"auto_download_status": paper["status"], "status": "ok",
+                          "origin": "uploaded by the user (automatic download had failed)", "version_note": uploaded_note})
+            paper.pop("version_openalex", None)   # OpenAlex 记录的版本不一定是用户上传的这一份
+        elif hit is not None:
+            to_upload.remove(hit)
+            label = paper_label(hit, used)
+            paper = {"id": hit.get("id") or label, "title": hit.get("title"), "label": label, "year": hit.get("year"),
+                     "venue": hit.get("venue"), "landing_url": hit.get("landing_url"), "study_area": hit.get("study_area"),
+                     "origin": "uploaded by the user (listed as not freely available)", "version_note": uploaded_note}
+            papers.append(paper)
+        else:
+            name = os.path.basename(path)
+            while name.lower().endswith(".pdf"):
+                name = name[:-4]
+            label = paper_label({"authors": [name], "year": ""}, used)
+            paper = {"id": label, "title": os.path.basename(path), "label": label,
+                     "origin": "uploaded by the user", "version_note": uploaded_note}
+            papers.append(paper)
+        dest = os.path.join(run_dir, "pdfs", f"{paper['label']}_upload.pdf")
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         shutil.copyfile(path, dest)   # 复制一份，不改动用户的原文件
-        papers.append({"id": label, "title": os.path.basename(path), "label": label, "status": "ok", "path": dest,
-                       "origin": "uploaded by the user", "version_note": "uploaded by the user; version not checked"})
+        paper.update({"status": "ok", "path": dest, "uploaded_file": os.path.basename(path)})
+    found = {**found, "upload": to_upload}   # 报告和 run.json 里只列仍未上传的；candidates.json 已按原样保存
     for p in papers:
         mark = "✓" if p["status"] == "ok" else "✗"
         print(f"  {mark} {p['label']}: {p['status']} - {p['title'][:80]}")
@@ -154,7 +215,7 @@ def run(topic: str, use_agent: bool = False, extra_pdfs: list[str] | None = None
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(report_text)
     record = {"topic": topic, "run_dir": run_dir, "agent": use_agent, "official": use_official, "papers": papers,
-              "upload_suggested": found.get("upload", []), "report": report_path}
+              "duplicate_uploads": duplicate_uploads, "upload_suggested": found.get("upload", []), "report": report_path}
     save_json(os.path.join(run_dir, "run.json"), record)
     print(f"\nReport saved to {report_path}")
     return record

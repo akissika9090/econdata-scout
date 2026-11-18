@@ -60,7 +60,7 @@ COMMON = {"doi": None, "landing_url": None, "cited_by": 1, "abstract": "x", "is_
           "reason": "same question", "access": "pdf"}
 A, B, C = ({**COMMON, **x} for x in (A, B, C))
 U = {**COMMON, "id": "WU", "title": "A Paywalled Classic", "year": 1991, "authors": ["Old Author"], "venue": "JHR",
-     "doi": "https://doi.org/x", "pdf_url": None, "is_oa": False, "access": "upload", "oa_version": None}
+     "doi": "https://doi.org/10.9999/classic", "pdf_url": None, "is_oa": False, "access": "upload", "oa_version": None}
 FOUND = {"topic": "t", "policy": "minimum wage", "outcome": "teen employment", "queries": ["q"],
          "models_used": ["fake"], "n_found": 4, "auto": [A, B, C], "upload": [U], "all": [A, B, C, U]}
 
@@ -124,6 +124,37 @@ try:
         p = rec2["papers"][0]
         check("用户自己提供的 PDF：复制进运行文件夹后同样提取，来源标明“用户上传”",
               p["origin"] == "uploaded by the user" and p["analysis"]["status"] == "extracted" and os.path.exists(up))
+        # 上传的 PDF 和检索结果配对（2026-11-18：以前上传后报告末尾仍列为“未分析”）
+        up_b = os.path.join(d, "Another.pdf.pdf")
+        open(up_b, "wb").write(make_pdf("Another Minimum Wage Study of Teenage Workers"))
+        up_c = os.path.join(d, "classic.pdf")
+        open(up_c, "wb").write(make_pdf("A Paywalled Classic  doi:10.9999/classic"))
+        calls["n"] = 20
+        rec5 = scout.run("t", run_dir=os.path.join(d, "run5"), extra_pdfs=[up_b, up_c, up],
+                         search=lambda topic: FOUND, get=fake_get)
+        b5 = {p["id"]: p for p in rec5["papers"]}
+        report5 = open(rec5["report"], encoding="utf-8").read()
+        not_yet = report5.split("## Not yet confirmed")[1]
+        check("上传配对：下载失败（403）的论文上传后沿用原简称和标题，记下原先的下载状态，不再列为未分析",
+              b5["WB"]["status"] == "ok" and b5["WB"]["auto_download_status"] == "http_403"
+              and "automatic download had failed" in b5["WB"]["origin"] and "Another Minimum Wage Study" not in not_yet)
+        check("上传配对：“需要上传”的论文上传后进入调查，从“尚未确认”和 run.json 的待上传列表里去掉",
+              any(p["title"] == "A Paywalled Classic" and p["status"] == "ok" for p in rec5["papers"])
+              and "A Paywalled Classic" not in not_yet
+              and all(u["title"] != "A Paywalled Classic" for u in rec5["upload_suggested"]))
+        check("上传配对：配不上的照旧按文件名单独列出；文件名里重复的 .pdf 不进简称",
+              any(p["title"] == "my_paper.pdf" and p["origin"] == "uploaded by the user" for p in rec5["papers"])
+              and "Anotherpdf" not in report5)
+        check("上传配对：OpenAlex 记录的版本不套到用户上传的文件上", "version_openalex" not in b5["WB"])
+        up_a = os.path.join(d, "smith_again.pdf")
+        open(up_a, "wb").write(make_pdf("Minimum Wages and Teen Employment in the States"))
+        calls["n"] = 30
+        rec6 = scout.run("t", run_dir=os.path.join(d, "run6"), extra_pdfs=[up_a, up_b, up_b],
+                         search=lambda topic: FOUND, get=fake_get)
+        labels6 = [p["label"] for p in rec6["papers"] if p["status"] == "ok"]
+        check("上传配对：已自动下载成功的论文再上传一次（或同一文件传两次）不重复分析，记入 duplicate_uploads",
+              labels6.count("Smith2015") == 1 and labels6.count("Lee2010") == 1 and len(labels6) == len(set(labels6))
+              and [u["same_as"] for u in rec6["duplicate_uploads"]] == ["Smith2015", "Lee2010"])
         rec3 = scout.run("t", run_dir=os.path.join(d, "run3"), search=lambda topic: FOUND,
                          get=lambda url: Resp(status=403))
         report3 = open(rec3["report"], encoding="utf-8").read()
@@ -145,6 +176,16 @@ try:
         check("Agent 阶段出错（如模型返回格式不对）：这篇保留基础流程的结果并记录失败，整次调查不中断", ok)
     check("不读写 papers/ 和 results/（不会混进开发集、诊断集和历史测试结果）",
           {d: sorted(os.listdir(d)) for d in watched} == watched)
+    cands = [{"title": "The Effect of Pollution on Worker Productivity", "doi": "https://doi.org/10.1257/app.20160436"},
+             {"title": "Air Pollution and Productivity", "doi": "https://doi.org/10.1/x"},
+             {"title": "Short Title", "doi": None}]
+    check("配对函数：DOI 出现在前两页即配上（大小写、断行不影响）",
+          scout.match_upload("AEJ ... https://doi.org/10.1257/\nAPP.20160436", cands) is cands[0])
+    check("配对函数：完整标题（含断行、符号）配上；少于 4 个词的标题不按标题配",
+          scout.match_upload("The Effect of Pollution on Worker\nProductivity: Evidence\u2020", cands) is cands[0]
+          and scout.match_upload("Short Title by someone", cands) is None)
+    check("配对函数：同时配上两篇时不猜，返回 None",
+          scout.match_upload("The Effect of Pollution on Worker Productivity ... doi 10.1/x Air Pollution and Productivity", cands) is None)
     check("论文简称：同名同年时加 a、b 区分",
           [scout.paper_label({"authors": ["X Wang"], "year": 2020}, s) for s in [set()] for _ in range(2)] == ["Wang2020", "Wang2020a"])
 finally:
