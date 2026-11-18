@@ -113,7 +113,7 @@ def default_official_check(merged: list[dict], topic: str = "") -> dict:
     return oc.check_merged(merged, Web(), oc.load_learned(), verbose=True)
 
 
-def run(topic: str, use_agent: bool = False, extra_pdfs: list[str] | None = None, run_dir: str | None = None,
+def run(topic: str | None, use_agent: bool = False, extra_pdfs: list[str] | None = None, run_dir: str | None = None,
         search=search_papers.search, get=fetch_fulltext.default_get, use_official: bool = False,
         official_check=default_official_check) -> dict:
     """完整流程。search、get、official_check 只在测试时替换（不联网）。返回这次运行的记录（也保存为 run.json）。"""
@@ -121,11 +121,16 @@ def run(topic: str, use_agent: bool = False, extra_pdfs: list[str] | None = None
     for sub in ("extract", "agent"):
         os.makedirs(os.path.join(run_dir, sub), exist_ok=True)
 
-    # 1. 检索
-    print(f"\n[1/5] Searching OpenAlex for: {topic}")
-    found = search(topic)
-    save_json(os.path.join(run_dir, "candidates.json"), found)
-    search_papers.print_candidates(found)
+    # 1. 检索。两种用法：给研究方向 → 检索候选论文（相关性由模型打分，需用户确认）；
+    #    不给研究方向、只给 PDF → 不检索，只分析用户上传的论文
+    if topic:
+        print(f"\n[1/5] Searching OpenAlex for: {topic}")
+        found = search(topic)
+        save_json(os.path.join(run_dir, "candidates.json"), found)
+        search_papers.print_candidates(found)
+    else:
+        print("\n[1/5] No research direction given: analysing the uploaded PDFs only (no search)")
+        found = {"auto": [], "upload": []}
 
     # 2. 下载：自动调查组 + 用户自己提供的 PDF
     print("\n[2/5] Downloading open-access full texts...")
@@ -202,7 +207,7 @@ def run(topic: str, use_agent: bool = False, extra_pdfs: list[str] | None = None
     if use_official:
         print("\n[4/5] Checking official sites for how each data source can be obtained now...")
         try:
-            official = official_check(step3.merge_reports(reports), topic)
+            official = official_check(step3.merge_reports(reports), topic or "")
             save_json(os.path.join(run_dir, "official.json"), official)
         except Exception as e:   # 例如没有 DeepSeek key、网络不通：报告照常生成，说明官网核查没有完成
             print(f"  ✗ official check failed: {type(e).__name__}: {str(e)[:200]}")
@@ -232,8 +237,9 @@ def run(topic: str, use_agent: bool = False, extra_pdfs: list[str] | None = None
 def format_run_report(topic: str, found: dict, papers: list[dict], reports: list[tuple[str, dict]], use_agent: bool,
                       official: dict | None = None) -> str:
     """报告 = 这次调查了哪些论文（来源、版本、状态）+ 按数据源合并的结果（step3）+ 尚未确认的事项。"""
-    lines = [f"# EconData Scout report", "", f"- Research direction: {topic}",
-             f"- Policy: {found.get('policy')}  |  Outcome: {found.get('outcome')}",
+    lines = [f"# EconData Scout report", "",
+             f"- Research direction: {topic}" if topic else "- Research direction: none (uploaded PDFs only; no search)",
+             f"- Policy: {found.get('policy')}  |  Outcome: {found.get('outcome')}" if topic else "- Papers: uploaded by the user",
              f"- Evidence Recovery Agent: {'used' if use_agent else 'not used'}",
              f"- Official-site check (V2): {'used' if official is not None else 'not used'}", "", "## Papers investigated", ""]
     for p in papers:
@@ -261,13 +267,16 @@ def format_run_report(topic: str, found: dict, papers: list[dict], reports: list
 
 
 def main():
-    parser = argparse.ArgumentParser(description="EconData Scout: research direction -> data-source report")
-    parser.add_argument("topic", help="research direction, in English")
+    parser = argparse.ArgumentParser(description="EconData Scout: research direction or your own PDFs -> data-source report")
+    parser.add_argument("topic", nargs="?", default=None,
+                        help="research direction, in English (omit it and give --pdf to analyse only your own papers)")
     parser.add_argument("--agent", action="store_true", help="run the Evidence Recovery Agent on unconfirmed sources")
     parser.add_argument("--pdf", nargs="*", default=[], help="PDFs you downloaded yourself (e.g. paywalled papers)")
     parser.add_argument("--official", action="store_true",
                         help="V2: check each data source on the provider's official site (needs DEEPSEEK_API_KEY)")
     args = parser.parse_args()
+    if not args.topic and not args.pdf:
+        parser.error("give a research direction, or --pdf with your own papers")
     run(args.topic, use_agent=args.agent, extra_pdfs=args.pdf, use_official=args.official)
 
 

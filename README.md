@@ -1,6 +1,6 @@
 # EconData Scout
 
-日本語の概要：[docs/overview_ja.md](docs/overview_ja.md)　｜　中国経済データの入手経路カタログ（設計と評価）：[docs/access_catalog_ja.md](docs/access_catalog_ja.md)　｜　出力例：[demo/outputs/access_table_ja.md](demo/outputs/access_table_ja.md)
+日本語 README：[README.ja.md](README.ja.md)　｜　日本語の概要：[docs/overview_ja.md](docs/overview_ja.md)　｜　中国経済データの入手経路カタログ（設計と評価）：[docs/access_catalog_ja.md](docs/access_catalog_ja.md)　｜　出力例：[demo/outputs/access_table_ja.md](demo/outputs/access_table_ja.md)
 
 EconData Scout is a **citation-backed data-provenance tool for economics papers**. Give it a research direction: it finds prior papers and reports **which data each paper used and what the paper's own text says about that data** — access conditions, sample years, links — with the quote and page for every conclusion, so you can check each one yourself.
 
@@ -58,7 +58,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-API keys are needed only for new runs. Tests and demos run without keys:
+API keys are needed only for new runs (`--pdf` without a research direction needs only `GEMINI_API_KEY`). Tests and demos run without keys:
 
 ```bash
 export GEMINI_API_KEY='your key'     # Google AI Studio (newer keys start with "AQ."; paste it exactly once)
@@ -72,6 +72,7 @@ Keys are read from the environment only and are never written to files.
 
 ```bash
 python scout.py "the effect of the Earned Income Tax Credit on the labor supply of single mothers in the United States"
+python scout.py --pdf paper1.pdf paper2.pdf                 # start from your own papers: no search, only these PDFs are analysed
 python scout.py "research direction" --pdf my_paper.pdf     # add PDFs you obtained yourself (e.g. paywalled)
 python scout.py "research direction" --agent                # also run the Evidence Recovery Agent (many more calls)
 python scout.py "research direction" --official             # V2: also check each data source on the official site
@@ -91,7 +92,7 @@ python run_tests.py            # default public tests: no key, no network, no pa
 python run_tests.py --papers   # optional: tests on real papers; each file reports SKIPPED when its local materials are missing
 ```
 
-The default suite has 9 files and uses synthetic text only (the V2 tests use saved-page fakes and a fake model, no network). The optional suite has 6 files; they read paper PDFs and saved results, which are not distributed. A file in the optional suite stops before reading anything when its materials are missing, and lists the missing files.
+The default suite has 10 files and uses synthetic text only (the V2 tests use saved-page fakes and a fake model, no network). The optional suite has 6 files; they read paper PDFs and saved results, which are not distributed. A file in the optional suite stops before reading anything when its materials are missing, and lists the missing files.
 
 ## Demos
 

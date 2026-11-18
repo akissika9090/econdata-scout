@@ -124,6 +124,16 @@ try:
         p = rec2["papers"][0]
         check("用户自己提供的 PDF：复制进运行文件夹后同样提取，来源标明“用户上传”",
               p["origin"] == "uploaded by the user" and p["analysis"]["status"] == "extracted" and os.path.exists(up))
+        # 用法 2：不给研究方向、只给 PDF → 不检索，只分析上传的论文（2026-11-18）
+        def no_search(topic):
+            raise AssertionError("search must not run without a research direction")
+        calls["n"] = 10
+        rec_pdf = scout.run(None, run_dir=os.path.join(d, "run_pdf"), extra_pdfs=[up], search=no_search, get=fake_get)
+        rep_pdf = open(rec_pdf["report"], encoding="utf-8").read()
+        check("只给 PDF：不检索，上传的论文照常提取，报告写明“只分析上传的论文”，并生成入手経路の表",
+              len(rec_pdf["papers"]) == 1 and rec_pdf["papers"][0]["analysis"]["status"] == "extracted"
+              and "uploaded PDFs only" in rep_pdf and os.path.exists(os.path.join(d, "run_pdf", "access_table_ja.md"))
+              and not os.path.exists(os.path.join(d, "run_pdf", "candidates.json")))
         # 上传的 PDF 和检索结果配对（2026-11-18：以前上传后报告末尾仍列为“未分析”）
         up_b = os.path.join(d, "Another.pdf.pdf")
         open(up_b, "wb").write(make_pdf("Another Minimum Wage Study of Teenage Workers"))
