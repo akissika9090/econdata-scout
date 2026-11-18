@@ -316,8 +316,11 @@ def select_candidates(rows: list[dict], n_auto: int = N_AUTO, n_upload: int = N_
 # ============ 4. 主流程 ============
 
 def search(topic: str) -> dict:
+    import time
     MODELS_USED.clear()
+    t0 = time.perf_counter()
     plan = plan_search(topic)
+    t1 = time.perf_counter()
     queries = plan["queries"]
     print(f"Policy: {plan['policy']}  |  Outcome: {plan['outcome']}")
     print(f"Queries: {queries}")
@@ -327,8 +330,12 @@ def search(topic: str) -> dict:
         print(f'  "{q}" -> {len(hits)} papers')
         found.extend(hits)
     works = dedupe(found)
+    t2 = time.perf_counter()
     print(f"{len(works)} papers after de-duplication; asking the AI to judge relevance...")
     scores = screen(topic, plan, works)
+    t3 = time.perf_counter()
+    # 各段階の所要時間（2026-11-18：どこが遅いかを実測するため。判定には影響しない）
+    print(f"Timing: planning {t1 - t0:.0f}s | OpenAlex {t2 - t1:.0f}s | relevance judging {t3 - t2:.0f}s ({len(works)} papers)")
     rows = score_rows(works, scores)
     auto, upload = select_candidates(rows)
     return {"topic": topic, "policy": plan["policy"], "outcome": plan["outcome"], "queries": queries,

@@ -115,7 +115,7 @@ def default_official_check(merged: list[dict], topic: str = "") -> dict:
 
 def run(topic: str | None, use_agent: bool = False, extra_pdfs: list[str] | None = None, run_dir: str | None = None,
         search=search_papers.search, get=fetch_fulltext.default_get, use_official: bool = False,
-        official_check=default_official_check) -> dict:
+        official_check=default_official_check, search_only: bool = False) -> dict:
     """完整流程。search、get、official_check 只在测试时替换（不联网）。返回这次运行的记录（也保存为 run.json）。"""
     run_dir = run_dir or os.path.join("runs", datetime.now().strftime("%Y%m%d_%H%M%S"))
     for sub in ("extract", "agent"):
@@ -128,6 +128,14 @@ def run(topic: str | None, use_agent: bool = False, extra_pdfs: list[str] | None
         found = search(topic)
         save_json(os.path.join(run_dir, "candidates.json"), found)
         search_papers.print_candidates(found)
+        if search_only:   # 搜索 → 候选论文与下载途径 → 学生自己判断相关性、下载 → 用 --pdf 上传（2026-11-18）
+            path = os.path.join(run_dir, "candidates_ja.md")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(candidates_markdown_ja(topic, found))
+            print(f"\nCandidate list saved to {path}\nDownload the papers you judge relevant, then run: python scout.py --pdf <files>")
+            record = {"topic": topic, "run_dir": run_dir, "search_only": True, "candidates": path}
+            save_json(os.path.join(run_dir, "run.json"), record)
+            return record
     else:
         print("\n[1/5] No research direction given: analysing the uploaded PDFs only (no search)")
         found = {"auto": [], "upload": []}
@@ -234,6 +242,69 @@ def run(topic: str | None, use_agent: bool = False, extra_pdfs: list[str] | None
     return record
 
 
+def target_region(topic: str) -> str | None:
+    """研究方向の最後の “in ...” を対象地域とみなす（例：“... in China” → “china”）。なければ None。"""
+    t = (topic or "").lower()
+    k = t.rfind(" in ")
+    return t[k + 4:].strip(" .") or None if k >= 0 else None
+
+
+def data_hints(abstract: str) -> list[tuple[str, str]]:
+    """要旨に出てくるカタログ収録データ（9 種）を、入手経路表と同じ照合規則で探す。返すのは（データ名, 結論）だけで、要旨の文は出さない。
+    要旨は本文ではないので、論文が実際に使ったかは未確認。"""
+    import re
+    import access_catalog
+    out = []
+    for sent in re.split(r"(?<=[.;!?。])\s+", abstract or ""):
+        m = access_catalog.match({"name": sent})
+        if m.get("level") in ("product", "product_version"):
+            e = access_catalog._BY_ID[m["entry_id"]]
+            item = (e["ja"]["product"], e["ja"]["verdict"])
+            if item not in out:
+                out.append(item)
+    return out
+
+
+def candidates_markdown_ja(topic: str, found: dict) -> str:
+    """研究方向から探した候補論文の一覧（日本語）。関連度はモデルの判断なので、学生が確認してから PDF を入手・アップロードする。
+    対象地域（A）：研究方向に “in 地域” があれば、地域が一致する論文を先に、異なる可能性がある論文を後に並べる。
+    データの手がかり（B）：要旨に出てくるカタログ収録データと、その入手条件を示す（本文では未確認）。"""
+    region = target_region(topic)
+    rows = sorted(found.get("auto", []) + found.get("upload", []), key=lambda c: -(c.get("relevance") or 0))
+    def group(c):
+        area = str(c.get("study_area") or "").lower()
+        if not region:
+            return 0
+        if region in area:
+            return 0
+        return 1 if (not area or area == "not stated") else 2
+    rows.sort(key=group)   # 安定ソート：同じグループ内は関連度順のまま
+    lines = [f"# 候補論文：{topic}", "",
+             "関連度はタイトルと要旨からのモデルの判断です（3 = 政策・結果とも一致、2 = 一部一致）。"
+             "「無料の全文 PDF」は OpenAlex の記録によるもので、実際に開けるとは限りません。"
+             "自分のテーマに本当に関係するかを確認し、選んだ論文の PDF を 1 つのフォルダ（例：papers）に入れてから、"
+             "次のコマンドをそのまま実行してください（フォルダ内の PDF をすべて調べます）。", "",
+             "```", "python scout.py --pdf papers/", "```", ""]
+    if region:
+        lines += [f"対象地域「{region}」と一致する論文を先に並べています。対象地域はタイトルと要旨からのモデルの判断です。", ""]
+    if not rows:
+        lines.append("関連する論文は見つかりませんでした。研究方向の書き方（政策・結果・地域）を変えて再検索してください。")
+    labels = {0: "", 1: "（対象地域の記載なし：要確認）", 2: "（⚠ 対象地域がテーマと異なる可能性）"}
+    for i, c in enumerate(rows, 1):
+        free = c.get("pdf_url") if c.get("is_oa") and c.get("pdf_url") else None
+        where = f"無料の全文 PDF：{free}" if free else "全文は無料では見つからず（大学の契約などで入手）"
+        page = c.get("landing_url") or (f"https://doi.org/{c['doi']}" if c.get("doi") and not str(c["doi"]).startswith("http") else c.get("doi"))
+        lines += [f"## {i}. {c.get('title')}", "",
+                  f"- {', '.join((c.get('authors') or [])[:3])}（{c.get('year')}）{c.get('venue') or ''}",
+                  f"- 関連度：{c.get('relevance')}（モデル判断）　理由：{c.get('reason') or '—'}",
+                  f"- 対象地域（参考）：{c.get('study_area') or '—'}{labels[group(c)]}"]
+        hints = data_hints(c.get("abstract") or "")
+        if hints:
+            lines.append("- 要旨に出てくるデータ（本文では未確認）：" + "；".join(f"{n} → {v}" for n, v in hints))
+        lines += [f"- {where}", f"- 論文ページ：{page or '—'}", ""]
+    return "\n".join(lines) + "\n"
+
+
 def format_run_report(topic: str, found: dict, papers: list[dict], reports: list[tuple[str, dict]], use_agent: bool,
                       official: dict | None = None) -> str:
     """报告 = 这次调查了哪些论文（来源、版本、状态）+ 按数据源合并的结果（step3）+ 尚未确认的事项。"""
@@ -266,18 +337,34 @@ def format_run_report(topic: str, found: dict, papers: list[dict], reports: list
     return "\n".join(lines)
 
 
+def expand_pdf_args(paths: list[str]) -> list[str]:
+    """--pdf にフォルダを渡したら、その中の PDF（直下のみ、名前順）に展開する。ファイルはそのまま。"""
+    out = []
+    for p in paths or []:
+        if os.path.isdir(p):
+            out += sorted(os.path.join(p, f) for f in os.listdir(p) if f.lower().endswith(".pdf"))
+        else:
+            out.append(p)
+    return out
+
+
 def main():
     parser = argparse.ArgumentParser(description="EconData Scout: research direction or your own PDFs -> data-source report")
     parser.add_argument("topic", nargs="?", default=None,
                         help="research direction, in English (omit it and give --pdf to analyse only your own papers)")
     parser.add_argument("--agent", action="store_true", help="run the Evidence Recovery Agent on unconfirmed sources")
-    parser.add_argument("--pdf", nargs="*", default=[], help="PDFs you downloaded yourself (e.g. paywalled papers)")
+    parser.add_argument("--pdf", nargs="*", default=[], help="PDFs you downloaded yourself, or a folder of PDFs")
+    parser.add_argument("--search-only", action="store_true",
+                        help="only search: list candidate papers with download links (candidates_ja.md); then upload the ones you choose with --pdf")
     parser.add_argument("--official", action="store_true",
                         help="V2: check each data source on the provider's official site (needs DEEPSEEK_API_KEY)")
     args = parser.parse_args()
+    args.pdf = expand_pdf_args(args.pdf)
     if not args.topic and not args.pdf:
         parser.error("give a research direction, or --pdf with your own papers")
-    run(args.topic, use_agent=args.agent, extra_pdfs=args.pdf, use_official=args.official)
+    if args.search_only and not args.topic:
+        parser.error("--search-only needs a research direction")
+    run(args.topic, use_agent=args.agent, extra_pdfs=args.pdf, use_official=args.official, search_only=args.search_only)
 
 
 if __name__ == "__main__":

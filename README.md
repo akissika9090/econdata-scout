@@ -73,6 +73,7 @@ Keys are read from the environment only and are never written to files.
 ```bash
 python scout.py "the effect of the Earned Income Tax Credit on the labor supply of single mothers in the United States"
 python scout.py --pdf paper1.pdf paper2.pdf                 # start from your own papers: no search, only these PDFs are analysed
+python scout.py "research direction" --search-only        # only search: candidate papers with download links (candidates_ja.md); you choose, download and upload them with --pdf
 python scout.py "research direction" --pdf my_paper.pdf     # add PDFs you obtained yourself (e.g. paywalled)
 python scout.py "research direction" --agent                # also run the Evidence Recovery Agent (many more calls)
 python scout.py "research direction" --official             # V2: also check each data source on the official site

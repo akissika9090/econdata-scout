@@ -124,6 +124,30 @@ try:
         p = rec2["papers"][0]
         check("用户自己提供的 PDF：复制进运行文件夹后同样提取，来源标明“用户上传”",
               p["origin"] == "uploaded by the user" and p["analysis"]["status"] == "extracted" and os.path.exists(up))
+        # 研究方向 → 候选论文与下载途径（只搜索，不下载、不分析；2026-11-18）
+        def no_get(*a, **k):
+            raise AssertionError("search-only must not download")
+        rec_s = scout.run("minimum wage", run_dir=os.path.join(d, "run_search"), search=lambda topic: FOUND, get=no_get, search_only=True)
+        cj = open(rec_s["candidates"], encoding="utf-8").read()
+        check("只搜索：不下载、不提取；日语候选清单列出每篇论文、相关度（模型判断）和下载途径，并给出 --pdf 的下一步",
+              rec_s.get("search_only") and not os.path.exists(os.path.join(d, "run_search", "report.md"))
+              and all(c["title"] in cj for c in FOUND["auto"] + FOUND["upload"]) and "モデルの判断" in cj and "--pdf" in cj)
+        # 候補一覧：対象地域（A）とデータの手がかり（B）
+        fd_found = {"auto": [
+            {"title": "Paper US", "relevance": 3, "study_area": "United States", "abstract": "We use CPS data."},
+            {"title": "Paper CN", "relevance": 2, "study_area": "Beijing, China", "abstract": "We use the China Family Panel Studies (CFPS). Firm data come from CSMAR."},
+            {"title": "Paper NA", "relevance": 3, "study_area": "not stated", "abstract": "We use the 2010 population census of Japan."}], "upload": []}
+        md = scout.candidates_markdown_ja("minimum wage in China", fd_found)
+        check("候補一覧：対象地域が一致する論文を先に、記載なし、異なる可能性の順（地域が違えば ⚠）",
+              md.index("Paper CN") < md.index("Paper NA") < md.index("Paper US") and "⚠ 対象地域がテーマと異なる可能性" in md)
+        check("候補一覧：要旨に出てくるカタログ収録データと入手条件を示す（本文では未確認）。一般名だけの日本のセンサスは出さない",
+              "本文では未確認" in md and "CFPS" in md and "機関契約による制限" in md and md.count("要旨に出てくるデータ") == 1)
+        # --pdf にフォルダ：中の PDF（直下、名前順）に展開、PDF 以外は無視
+        fd = os.path.join(d, "papers_dir"); os.makedirs(fd)
+        for nm in ("b.pdf", "a.PDF", "note.txt"):
+            open(os.path.join(fd, nm), "w").write("x")
+        check("--pdf にフォルダを渡すと中の PDF に展開（ファイル指定はそのまま）",
+              scout.expand_pdf_args([fd, up]) == [os.path.join(fd, "a.PDF"), os.path.join(fd, "b.pdf"), up])
         # 用法 2：不给研究方向、只给 PDF → 不检索，只分析上传的论文（2026-11-18）
         def no_search(topic):
             raise AssertionError("search must not run without a research direction")
