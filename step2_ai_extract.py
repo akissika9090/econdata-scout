@@ -71,6 +71,16 @@ def build_context(pages, blocks) -> tuple[str, str]:
 
 USAGE_VALUES = ["analyzed", "cited", "described", "unclear"]
 PERIOD_FORMS = ["single", "discrete", "range", "unclear"]
+# V2（2026-11-17）：论文侧获取说明的细分字段。渠道与资格是模型对“已核对的条件原文”的语义判断；
+# V1 的四个分类（access_category）保留不变，细分字段只作为补充显示，必须和已核对的分类一致才显示
+ACCESS_CHANNELS = ["public_download", "registration_download", "subscription", "purchase",
+                   "apply_to_provider", "request_from_author", "special_agreement", "not_stated"]
+ELIGIBILITY_VALUES = ["researchers", "individuals", "institution_must_apply", "not_stated"]
+# 渠道与 V1 分类的对应关系（只做一致性检查，不新增语义规则）
+CHANNEL_CATEGORY = {"public_download": "public", "registration_download": "public",
+                    "subscription": "subscription", "purchase": "subscription",
+                    "apply_to_provider": "restricted", "request_from_author": "restricted",
+                    "special_agreement": "restricted", "not_stated": None}
 
 EVIDENCE = {
     "type": "object",
@@ -121,10 +131,21 @@ EXTRACT_TOOL = {
                                         "description": "样本期间的形态：single 单年；discrete 几个不连续的年份；range 连续区间；unclear 无法判断；没有样本期间时为 null"},
                         "period_years": {"anyOf": [{"type": "array", "items": {"type": "integer"}}, {"type": "null"}],
                                          "description": "single：一个年份；discrete：列出的各个年份；range：[起始年, 结束年]；没有样本期间时为 null"},
+                        "version": {"type": ["string", "null"],
+                                    "description": "本文实际使用的版本、文件或匹配方式，从 version_evidence 原文逐字复制（如 public use files、restricted data files、1% sample）；原文没写为 null"},
+                        "version_evidence": {"anyOf": [EVIDENCE, {"type": "null"}],
+                                             "description": "写明版本、文件或匹配方式的原文；version 为 null 时为 null"},
+                        "access_channel": {"type": "string", "enum": ACCESS_CHANNELS,
+                                           "description": "按 access_evidence 原文判断的获取渠道；原文没写渠道为 not_stated"},
+                        "eligibility": {"type": "string", "enum": ELIGIBILITY_VALUES,
+                                        "description": "原文写明谁可以申请或获取；没写为 not_stated"},
+                        "use_restrictions": {"type": "array", "items": {"type": "string"},
+                                             "description": "使用限制（如只能在指定场所使用、需要签署协议），每条从 access_evidence 原文逐字复制；没有则为空数组"},
                     },
                     "required": ["name", "role", "kind", "sample_period", "period_evidence",
                                  "access_category", "source_evidence", "access_evidence",
-                                 "access_applies_to", "usage", "usage_evidence", "period_form", "period_years"],
+                                 "access_applies_to", "usage", "usage_evidence", "period_form", "period_years",
+                                 "version", "version_evidence", "access_channel", "eligibility", "use_restrictions"],
                 },
             },
             "sample_limitations": {
@@ -169,15 +190,23 @@ SYSTEM_PROMPT = """你是经济学研究的数据审查助手。你的任务是�
 11. access_applies_to：获取条件适用于整个数据源写 whole；只适用于某个部分或版本（如 public-use files、county identifiers）时，
     从 access_evidence 原文中逐字复制那个部分的名称。
 12. period_form 和 period_years：原文写的是一个年份记 single；几个不连续的年份（如 “1977 and 1997”）记 discrete 并列出各年；
-    连续区间（如 “2003–2018”“from 2003 to 2018”）记 range，period_years 为 [起始年, 结束年]；无法判断记 unclear。不要把不连续的年份写成区间。"""
+    连续区间（如 “2003–2018”“from 2003 to 2018”）记 range，period_years 为 [起始年, 结束年]；无法判断记 unclear。不要把不连续的年份写成区间。
+13. version：作者实际用的是哪个版本、文件或匹配方式（如 public use files、restricted data files、1% sample、与税务记录匹配的数据），
+    从原文逐字复制，并在 version_evidence 中引用那一句；原文没写就为 null，不要用背景知识补。
+14. access_channel、eligibility、use_restrictions 只依据 access_evidence 那一句判断：
+    public_download 公开下载；registration_download 注册后免费下载；subscription 订阅；purchase 付费购买；
+    apply_to_provider 向数据提供方申请；request_from_author 向作者索取（只有作者承诺提供本文使用的这份数据时才算）；
+    special_agreement 与数据提供方的特别协议（如与企业管理层的协议）；not_stated 原文没写渠道（例如只写了“不公开”）。
+    eligibility：researchers 研究者可申请；individuals 个人可申请；institution_must_apply 须由机构提交；not_stated 没写。
+    use_restrictions 每条从 access_evidence 原文逐字复制（如 only at a Research Data Center）；没有则为空数组。"""
 
 
 def ask_ai(context: str) -> tuple[dict, str]:
     """根据设置了哪个 API key 选择模型，返回 (结构化结果, 使用的模型)。
     两个都设置了时优先用 Gemini（免费）。"""
-    if os.environ.get("GEMINI_API_KEY"):
+    if os.environ.get("GEMINI_API_KEY") or os.environ.get("LLM_PROVIDER", "").lower() == "deepseek":   # 2026-11-18：只设 DeepSeek 时也走这条
         result, model = ask_gemini(context)
-        return result, f"Gemini ({model})"
+        return result, (f"DeepSeek ({model})" if model.startswith("deepseek") else f"Gemini ({model})")
     if os.environ.get("ANTHROPIC_API_KEY"):
         return ask_claude(context), f"Claude ({MODEL})"
     raise SystemExit("没有找到 API key。请设置 GEMINI_API_KEY 或 ANTHROPIC_API_KEY。")
@@ -210,7 +239,7 @@ def ask_claude(context: str) -> dict:
 
 # ============ 3. 程序核对 AI 的回答 ============
 
-def check_evidence(pages, evidence) -> dict | None:
+def check_evidence(pages, evidence, tolerant: bool = False) -> dict | None:
     """核对一条证据，在原有内容上加上 verified 字段（只表示“这句话逐字出现在原文这一页”）。
     给定页找不到、但逐字出现在另一页时（常见原因：模型写了期刊印刷页码，而不是 [第N页] 标记），
     把页码改成实际所在的页，并在 page_given 里保留模型原来写的页码。这是机械核对，不改变引用的内容。"""
@@ -222,6 +251,13 @@ def check_evidence(pages, evidence) -> dict | None:
     found = [i for i in range(1, len(pages) + 1) if step1.verify_quote(pages, quote, i)]
     if found:
         return {**evidence, "page": found[0], "page_given": page, "verified": True}
+    if tolerant:   # 只用于“本文用了这个数据”的证据：PDF 噪声打断了句子（公式符号、脚注、跨页），词序完整才通过
+        pages_to_try = [page] if isinstance(page, int) and not isinstance(page, bool) else []
+        pages_to_try += [i for i in range(1, len(pages) + 1) if i != page]
+        hit = next((i for i in pages_to_try if step1.verify_quote_tolerant(pages, quote, i)), None)
+        if hit is not None:
+            extra = {"page": hit, "page_given": page} if hit != page else {}
+            return {**evidence, **extra, "verified": True, "pdf_interrupted": True}
     return {**evidence, "verified": False}
 
 
@@ -564,7 +600,31 @@ PROVENANCE = re.compile(
 VAGUE_NAME = re.compile(r"^\s*(many|other|various|several|some|additional|further|numerous)\b", re.IGNORECASE)
 
 
-def classify_mention(src: dict) -> str | None:
+TABLE_CELL_WORDS = 15   # 表格单元格一样短的来源引用
+SOURCE_TABLE_WINDOW = 2500   # 引用前多少字符内要有提到来源的表格（标题或表头），可以从上一页接过来
+TABLE_WORD = re.compile(r"\btable\b", re.IGNORECASE)
+SOURCE_WORD = re.compile(r"\bsources?\b", re.IGNORECASE)
+
+
+def in_source_table(pages: list[str] | None, evidence: dict) -> bool:
+    """v2.5b：来源引用像表格单元格（≤ TABLE_CELL_WORDS 个词），且所在位置之前（同页或接上一页）不远处有
+    提到来源的表格（同时出现 “table” 和 “source(s)”）→ 这是数据来源表里列出的数据，不是变量。
+    例：Abdelkader 2017 表 1 “Variable | Source”中的 “The World Bank: World Development Indicator (WDI).”"""
+    if not pages or not evidence or not evidence.get("verified"):
+        return False
+    quote, page = evidence.get("quote") or "", evidence.get("page")
+    if len(quote.split()) > TABLE_CELL_WORDS or not isinstance(page, int) or not (1 <= page <= len(pages)):
+        return False
+    here = step1.normalize(pages[page - 1])
+    before = (step1.normalize(pages[page - 2]) + " " if page >= 2 else "")
+    pos = here.find(step1.normalize(quote)[:40])
+    if pos < 0:
+        return False
+    window = (before + here[:pos])[-SOURCE_TABLE_WINDOW:]
+    return bool(TABLE_WORD.search(window) and SOURCE_WORD.search(window))
+
+
+def classify_mention(src: dict, pages: list[str] | None = None) -> str | None:
     """不像独立数据来源的条目返回原因（不删除，移到“其他提及”）：
        source_unverified  来源引用缺失或在原文中找不到
        unspecified        笼统说法，没有具体名称
@@ -580,7 +640,7 @@ def classify_mention(src: dict) -> str | None:
     if src.get("kind") == "policy_info":
         return None
     quote = (src.get("source_evidence") or {}).get("quote", "")
-    if quote and not PROVENANCE.search(step1.normalize(quote)):
+    if quote and not PROVENANCE.search(step1.normalize(quote)) and not in_source_table(pages, se):
         return "possible_variable"
     return None
 
@@ -724,7 +784,7 @@ VERIFICATION_LABELS = {
     "conflict": "the quote contains both public and restricted expressions",
     "multi_sentence": "the evidence is a multi-sentence quote; the program does not judge attribution across sentences, so it needs manual review",
     "multiple_sources": "the evidence sentence also names other data sources of this paper; the program does not judge which one the condition belongs to",
-    "anaphor_reference": "the evidence sentence starts with a reference (e.g. The data); this data is mentioned earlier, but the program does not confirm on that basis that it refers to it",
+    "anaphor_reference": "the evidence sentence starts with a reference (e.g. The data); this data is mentioned earlier, but the sentences in between do not form an unbroken chain of references to it, so the program does not confirm that it refers to it",
     "scope_unverified": "the model says the condition applies only to a part, but that part's name does not appear in the condition sentence (scope unverified)",
 }
 # 冻结的 Agent 提示词引用的是中文原文：保留一份，Agent 发给模型的内容保持不变
@@ -818,6 +878,26 @@ def other_sources_named(quote: str, src: dict, others: list[dict]) -> list[str]:
     return named
 
 
+def anaphor_resolved(pages, src: dict, evidence: dict, others: list[dict] | None) -> bool:
+    """指代句能否确认指向这个数据（2026-11-17 起，见 DEVLOG）。
+    从证据句往前（同一页、preceding_context 的范围内）逐句找最近一次点名这个数据的句子，三个条件都满足才确认：
+      1. 找到了点名句；
+      2. 点名句和证据句之间的每一句本身也是指代句（以 The / This / It 等开头），即指代链没有被另起话题的句子打断；
+      3. 从点名句到证据句，没有点名本论文的其他数据源。
+    条件 2 防止中间出现了模型没有抽取的数据（例：“We obtain weather data from NOAA.” 夹在中间时不确认）。
+    诊断依据：受限 0/15 中 7 次是 deng2020 UHS 的指代句被拦下，模型判断正确；规则按一般原则写，没有针对具体论文。"""
+    text = ABBREVIATION.sub(lambda m: m.group(0).replace(".", ""), preceding_context(pages, evidence).strip())
+    sentences = [x.strip() for x in SENTENCE_BREAK.split(text) if x and x.strip()]
+    chain = [evidence.get("quote", "")]
+    for sentence in reversed(sentences):
+        if names_source(sentence, src):
+            if any(not ANAPHOR.search(x) for x in chain[1:]):
+                return False
+            return not any(other_sources_named(x, src, others) for x in chain + [sentence])
+        chain.append(sentence)
+    return False
+
+
 def access_status(pages, src: dict, category: str, evidence: dict | None, statement: dict | None = None,
                   others: list[dict] | None = None) -> tuple[str, str]:
     """核对一条获取条件的证据能否支持这个分类，返回 (验证状态, 证据归属)。
@@ -838,6 +918,8 @@ def access_status(pages, src: dict, category: str, evidence: dict | None, statem
     if not supports_category(category, evidence["quote"], src):
         return "no_signal", "none"
     scope = evidence_scope(pages, src, evidence, statement)
+    if scope == "anaphor" and anaphor_resolved(pages, src, evidence, others):
+        scope = "direct"
     # 同一句里还点名了本论文的其他数据源：可能是共同条件，也可能是分别描述，V1 不区分，交给人工复核（2026-11-06 起）
     if scope == "direct" and other_sources_named(evidence["quote"], src, others):
         return "multiple_sources", "none"
@@ -852,9 +934,9 @@ def check_source(pages, raw: dict, statement: dict | None, others: list[dict]) -
     src["rule_notes"] = []   # 规则对 AI 原始结果做的修改，逐条记录，方便统计纠正与误改
     if raw.get("_split_from"):
         src["rule_notes"].append(f"由联合来源“{raw['_split_from']}”拆分，单独核对")
-    src["source_evidence"] = check_evidence(pages, src.get("source_evidence"))
+    src["source_evidence"] = check_evidence(pages, src.get("source_evidence"), tolerant=True)
     src["access_evidence"] = check_evidence(pages, src.get("access_evidence"))
-    src["period_evidence"] = check_evidence(pages, src.get("period_evidence"))
+    src["period_evidence"] = check_evidence(pages, src.get("period_evidence"), tolerant=True)
     for key in ("source_evidence", "access_evidence", "period_evidence"):
         ev = src.get(key)
         if ev and ev.get("page_given") is not None:
@@ -895,7 +977,46 @@ def check_source(pages, raw: dict, statement: dict | None, others: list[dict]) -
     if status == "none":
         condition_candidate(pages, src, statement, others)
     check_usage(pages, raw, src)
+    check_version_and_details(pages, raw, src)
     return src
+
+
+def check_version_and_details(pages, raw: dict, src: dict) -> None:
+    """V2（2026-11-17）：核对版本与获取细分字段。旧结果没有这些字段 → 记为未记录（None），不推断。
+    - 版本：version_evidence 必须逐字存在于原文，且 version 的写法逐字出现在这句里，才算 version_verified
+    - 渠道 / 资格：只在获取条件已核对通过（verification == verified）时显示；渠道还必须和已核对的分类一致
+      （CHANNEL_CATEGORY），不一致时不显示渠道，并记一条 rule_note
+    - 使用限制：每条都必须逐字出现在已核对的条件原文里，否则丢弃并记 rule_note"""
+    if "version" not in raw:
+        src["version"], src["version_verified"] = None, None
+    else:
+        src["version_evidence"] = check_evidence(pages, src.get("version_evidence"))
+        ev = src.get("version_evidence") or {}
+        v = src.get("version")
+        # 没写版本 → None（不适用），不记为“未通过”
+        src["version_verified"] = (bool(ev.get("verified") and step1.squash(v) in step1.squash(ev["quote"]))
+                                   if v else None)
+        if v and not src["version_verified"]:
+            src["rule_notes"].append(f"版本“{v}”没有在核对通过的原文中逐字出现，报告中标为未核实")
+    channel = raw.get("access_channel")
+    src["access_channel_shown"] = None
+    src["eligibility_shown"] = None
+    src["use_restrictions_shown"] = []
+    if channel is None or src.get("verification") != "verified":
+        return
+    quote = src["access_evidence"]["quote"]
+    expected = CHANNEL_CATEGORY.get(channel)
+    if channel != "not_stated" and expected != src["access_category"]:
+        src["rule_notes"].append(f"模型给的渠道“{channel}”与已核对的分类“{src['access_category']}”不一致，不显示渠道")
+    elif channel != "not_stated":
+        src["access_channel_shown"] = channel
+    if raw.get("eligibility") and raw["eligibility"] != "not_stated":
+        src["eligibility_shown"] = raw["eligibility"]
+    for r in raw.get("use_restrictions") or []:
+        if r and step1.squash(r) in step1.squash(quote):
+            src["use_restrictions_shown"].append(r)
+        else:
+            src["rule_notes"].append(f"使用限制“{r}”没有在条件原文中逐字出现，不显示")
 
 
 # 候选的适用对象：只有说法本身带有对象时才记录（如 “public use sample”）；否则“适用范围未确定”，从不默认为整个数据源
@@ -934,7 +1055,7 @@ def check_usage(pages, raw: dict, src: dict) -> None:
     旧提示词没有这个字段：旧提示词要求“只记录作者自己用到的数据”，按 analyzed、以来源句为依据（只用于回归对比）。"""
     if "usage" in raw:
         usage = raw.get("usage") if raw.get("usage") in USAGE_VALUES else "unclear"
-        uev = check_evidence(pages, raw.get("usage_evidence"))
+        uev = check_evidence(pages, raw.get("usage_evidence"), tolerant=True)
         src["usage_legacy"] = False
     else:
         usage, uev = "analyzed", src.get("source_evidence")
@@ -975,7 +1096,7 @@ def verify_result(pages, result: dict) -> dict:
     # 否则一条来源无效但条件更强的记录会先淘汰来源有效的那条，然后自己也被移走，结果有效来源一起消失
     candidates, others = [], []
     for src in checked:
-        reason = classify_mention(src)
+        reason = classify_mention(src, pages)
         if reason:
             src["mention_reason"] = reason
             src["rule_notes"].append(f"移到“其他提及”：{MENTION_LABELS[reason]}")

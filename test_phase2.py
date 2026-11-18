@@ -248,7 +248,8 @@ check("合并：报告中每篇论文一行显示适用范围",
 # ======== 适用范围的核对 ========
 print("\n适用范围")
 SA = "The public use files of the survey are freely available online."
-ra = verify([f"Data. We use the Panel Survey of Things. {SA} End."],
+# 2026-11-17：指代链规则下，点名句后紧跟的指代句会确认归属。为保留本项的原意（范围不放宽点名检查），中间插入一句另起话题的句子
+ra = verify([f"Data. We use the Panel Survey of Things. We thank the survey team. {SA} End."],
             [new_source("Panel Survey of Things", "We use the Panel Survey of Things.", cat="public",
                         access_quote="The public use files of the survey are freely available online.", applies="public use files")])
 x = ra["data_sources"][0]
@@ -290,7 +291,7 @@ cases = [
                          applies="whole")],
      [SN, "The Panel Survey of Things is publicly available, but the Panel Survey of Things geocodes are restricted."]),
     ("attribution unclear", [new_source("Panel Survey of Things", SN, cat="public", access_quote="These data are publicly available.", applies="whole")],
-     [SN, "These data are publicly available."]),
+     [SN, "We thank the survey team.", "These data are publicly available."]),   # 中间另起话题，指代链中断（2026-11-17）
 ]
 for label, srcs, sentences in cases:
     rep = verify(["Data. " + " ".join(sentences) + " End."], srcs)
@@ -338,6 +339,23 @@ check("D5. 只有词面线索时不写“论文中未说明”“所有论文都
       and "no verified statement of conditions" in soi_sec_old, soi_sec_old)
 check("D6. 已验证的条件注明：原文已定位并通过核对，分类是模型的判断",
       "verified: source text located and checks passed; the condition category is a model judgment" in section(text5, "IRS Statistics of Income"), section(text5, "IRS Statistics of Income"))
+
+
+# ======== 2026-11-17 指代链：范围检查照常生效 ========
+print("\n指代链 + 适用范围")
+rd = verify([f"Data. We use the Panel Survey of Things. {SA} End."],
+            [new_source("Panel Survey of Things", "We use the Panel Survey of Things.", cat="public",
+                        access_quote=SA, applies="public use files")])
+x = rd["data_sources"][0]
+check("指代句紧跟点名句 → 归属确认；部分名称 public use files 出现在条件句中 → 通过，范围为 public use files",
+      x["verification"] == "verified" and x["access_scope"] == "public use files", (x["verification"], x.get("access_scope")))
+re_ = verify([f"Data. We use the Panel Survey of Things. {SA} End."],
+             [new_source("Panel Survey of Things", "We use the Panel Survey of Things.", cat="public",
+                         access_quote=SA, applies="restricted geocode files")])
+x = re_["data_sources"][0]
+check("指代链确认归属，但部分名称不在条件句中 → 仍然是适用范围未核实",
+      x["verification"] == "scope_unverified" and x["access_category"] == "unknown", x["verification"])
+
 
 if residuals:
     print(f"\n已知残留错误 {len(residuals)} 项（不计入通过）：" + "；".join(f"{n}（{st}）" for n, st in residuals))

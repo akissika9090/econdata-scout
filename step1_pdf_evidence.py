@@ -281,6 +281,58 @@ def verify_quote(pages: list[str], quote: str, page_no: int) -> bool:
     return squash(quote) in squash(pages[page_no - 1])
 
 
+MAX_GAPS, MAX_GAP_CHARS = 3, 900   # 被打断最多 3 处；每处插入的噪声（去空白后）不超过 900 字符（脚注 + 页眉页脚）
+
+
+def _in_order(words: list[str], text: str) -> int:
+    """words 依次出现在 text 中：连续的词组成一段，段与段之间允许插入噪声。
+    从每个可能的起点贪心地取最长连续段；段数 ≤ MAX_GAPS + 1，每处插入 ≤ MAX_GAP_CHARS。返回起点，找不到返回 -1。"""
+    first = words[0]
+    start = text.find(first)
+    while start >= 0:
+        pos, i, gaps, ok = start, 0, 0, True
+        while i < len(words):
+            j = i + 1   # 从 pos 开始，最长能连续匹配到第几个词
+            while j < len(words) and text.startswith("".join(words[i:j + 1]), pos):
+                j += 1
+            if not text.startswith("".join(words[i:j]), pos):
+                ok = False
+                break
+            pos += len("".join(words[i:j]))
+            i = j
+            if i == len(words):
+                break
+            nxt = text.find(words[i], pos, pos + MAX_GAP_CHARS + len(words[i]))
+            gaps += 1
+            if nxt < 0 or gaps > MAX_GAPS:
+                ok = False
+                break
+            pos = nxt
+        if ok and i == len(words):
+            return start
+        start = text.find(first, start + 1)
+    return -1
+
+
+def verify_quote_tolerant(pages: list[str], quote: str, page_no: int) -> bool:
+    """宽松核对，只用于“本文用了这个数据”类的证据（来源句、使用关系、期间），不用于获取条件。
+    PDF 文字层常把一句话打断：公式符号混进句子、脚注插在句子中间、句子跨到下一页。
+    要求引用的每个词按顺序出现在这一页（或这一页接下一页），最多被打断 MAX_GAPS 处；先要通过严格核对的长度和页码检查。"""
+    if not isinstance(quote, str) or len(squash(quote)) < MIN_QUOTE_CHARS:
+        return False
+    if not isinstance(page_no, int) or isinstance(page_no, bool) or not (1 <= page_no <= len(pages)):
+        return False
+    words = [w for w in (squash(x) for x in normalize(quote).split(" ")) if w]
+    if len(words) < 4:
+        return False
+    text = squash(pages[page_no - 1])
+    if _in_order(words, text) >= 0:
+        return True
+    if page_no < len(pages):   # 跨页：匹配必须从这一页开始
+        return 0 <= _in_order(words, text + squash(pages[page_no])) < len(text)
+    return False
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("用法：python step1_pdf_evidence.py 论文.pdf")

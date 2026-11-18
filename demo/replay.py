@@ -74,7 +74,7 @@ def fallback() -> int:
     rec = json.load(open(os.path.join(d, "run.json"), encoding="utf-8"))
     found = json.load(open(os.path.join(d, "candidates.json"), encoding="utf-8"))
     log = open(os.path.join(d, "console.log"), encoding="utf-8").read().splitlines()
-    out = [f"<!-- {NOT_REVERIFIED} Source: demo/data/fallback/ (unmodified copies of run.json, candidates.json and the "
+    out = [f"<!-- {NOT_REVERIFIED} Source: demo/data/fallback/ (copies of run.json, candidates.json and the "
            "console log of a real run on 2026-11-06 11:36; checksums in demo/data/SOURCES.sha256). -->", "",
            f"# Failure fallback: a real run on \"{rec['topic']}\"", "",
            "## 1. The model was busy: retries, then the fallback model", "",

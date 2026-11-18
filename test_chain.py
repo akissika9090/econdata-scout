@@ -75,6 +75,25 @@ sec = section(text, "QWI employment data")
 check("2a. 指代句（中间提到了别的数据）→ 不是“受限 已验证”；需要人工复核，说明是指代句，引用和页码保留",
       " (verified" not in sec and "needs manual review" in sec and "starts with a reference" in sec and "The data are restricted." in sec and "p. 1" in sec, sec)
 
+# ---- 2a'. 指代链（2026-11-17 起）：点名句之后连续都是指代句、中间没有其他数据 → 确认归属 ----
+QWI_NAME = "We use QWI employment data from the Census Bureau."
+pages = [f"Data. {QWI_NAME} The data cover all counties in the United States. The data are restricted. End."]
+text, _ = report_text(pages, [source("QWI employment data", QWI_NAME, "restricted", "The data are restricted.")])
+sec = section(text, "QWI employment data")
+check("2a'. 指代链没有中断、中间没有其他数据 → 受限 已验证", " (verified" in sec and "needs manual review" not in sec, sec)
+# 中间夹了一句不是指代开头的句子（没有点名任何数据）→ 指代链中断，仍然需要人工复核
+pages = [f"Data. {QWI_NAME} We thank the agency for its help. The data are restricted. End."]
+text, _ = report_text(pages, [source("QWI employment data", QWI_NAME, "restricted", "The data are restricted.")])
+sec = section(text, "QWI employment data")
+check("2a'. 指代链被另起话题的句子打断 → 不确认，需要人工复核（指代句）",
+      " (verified" not in sec and "needs manual review" in sec and "starts with a reference" in sec, sec)
+# 指代链中的句子点名了本论文另一个已抽取的数据 → 不确认
+pages = [f"Data. {QWI_NAME} {NOAA_SRC} The data are restricted. End."]
+text, _ = report_text(pages, [source("QWI employment data", QWI_NAME, "restricted", "The data are restricted."),
+                              source("NOAA weather data", NOAA_SRC)])
+sec = section(text, "QWI employment data")
+check("2a'. 点名句与证据句之间点名了本论文的其他数据 → 不确认", " (verified" not in sec and "needs manual review" in sec, sec)
+
 # ---- 2b. 同一句提到多个数据：共同条件 / 分别描述 / 归属不明 ----
 def two_sources(q, cat):
     pages = [f"Data. {QWI_SRC} {NOAA_SRC} {q} End."]

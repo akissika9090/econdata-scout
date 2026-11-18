@@ -136,5 +136,66 @@ def run_quote_edge_cases() -> bool:
     return ok_all
 
 
+def run_tolerant() -> bool:
+    """宽松核对（只用于“本文用了这个数据”的证据）：PDF 噪声打断句子时通过；改了词、拼接远处的句子、跨页从下一页开始都不通过。"""
+    import step2_ai_extract as s2
+    noise = "Footnote 35 While the time frame is somewhat short, this period contains an unusual amount of activity. " * 3
+    pages = ["Intro. In s s L K the appendix, we provide evidence based on the 1997 Economic Cen- sus for Food Services. "
+             "These numbers are in line with a sampling of 1995 tax forms from the " + noise,
+             "Header line This content downloaded. Internal Revenue Service Statistics on Income Bulletin. Rest of text. "
+             + "Filler sentence about something else entirely. " * 40 + "The data are publicly available.",
+             "Only page three text about wages and employment here."]
+    cases = [
+        ("公式符号混进句子 → 通过", "In the appendix, we provide evidence based on the 1997 Economic Census for Food Services.", 1, True),
+        ("脚注插在句子中间、句子跨到下一页 → 通过",
+         "These numbers are in line with a sampling of 1995 tax forms from the Internal Revenue Service Statistics on Income Bulletin.", 1, True),
+        ("跨页但从下一页开始 → 第 1 页不通过", "Internal Revenue Service Statistics on Income Bulletin. Rest of text.", 1, False),
+        ("模型改了词 → 不通过", "In the appendix, we provide evidence based on the 1998 Economic Census for Food Services.", 1, False),
+        ("拼接相隔很远的两句 → 不通过", "Internal Revenue Service Statistics on Income Bulletin. The data are publicly available.", 2, False),
+        ("太短 → 不通过", "Economic Census", 1, False),
+    ]
+    ok_all = True
+    print("\nverify_quote_tolerant")
+    for name, quote, page_no, expected in cases:
+        got = s.verify_quote_tolerant(pages, quote, page_no)
+        ok = got == expected
+        ok_all &= ok
+        print(f"  {'✓' if ok else '✗'}  {name}" + ("" if ok else f"（实际：{got}）"))
+    q = {"quote": cases[0][1], "page": 1}
+    strict, loose = s2.check_evidence(pages, q), s2.check_evidence(pages, q, tolerant=True)
+    ok = (not strict["verified"]) and loose["verified"] and loose.get("pdf_interrupted") is True
+    ok_all &= ok
+    print(f"  {'✓' if ok else '✗'}  check_evidence 默认仍是严格核对（获取条件用）；tolerant=True 才宽松，并标 pdf_interrupted")
+    return ok_all
+
+
+def run_source_table() -> bool:
+    """v2.5b：数据来源表里单列的名称不算“可能只是变量”；没有来源表、或引用是一整句话，仍按原规则。"""
+    import step2_ai_extract as s2
+    pages = ["Data. Table (1) summarizes the data definition and sources. Variable Definition Source",
+             "X Wage inequality index The University of Texas: Inequality Project (UTIP) Database. "
+             "Y Female labor force The World Bank: World Development Indicator (WDI). Z Urban population.",
+             "This paper evaluated the effect of PM10 and AQI on health-care expenditure in many provinces of China."]
+    wdi = {"quote": "The World Bank: World Development Indicator (WDI).", "page": 2, "verified": True}
+    pm = {"quote": "This paper evaluated the effect of PM10 and AQI on health-care expenditure", "page": 3, "verified": True}
+    long_q = {"quote": "Y Female labor force The World Bank: World Development Indicator (WDI). Z Urban population and more words here",
+              "page": 2, "verified": True}
+    cases = [("来源表里单列的名称（表头在上一页）→ 算来源", s2.in_source_table(pages, wdi), True),
+             ("没有来源表的变量句 → 不算", s2.in_source_table(pages, pm), False),
+             ("引用超过表格单元格长度 → 不按表格规则", s2.in_source_table(pages, long_q), False),
+             ("引用未核对通过 → 不算", s2.in_source_table(pages, dict(wdi, verified=False)), False),
+             ("classify_mention：来源表中的 WDI 不再是 possible_variable",
+              s2.classify_mention({"name": "WDI", "source_evidence": wdi}, pages) is None, True),
+             ("classify_mention：变量句仍是 possible_variable",
+              s2.classify_mention({"name": "PM10", "source_evidence": pm}, pages) == "possible_variable", True)]
+    ok_all = True
+    print("\nin_source_table")
+    for name, got, expected in cases:
+        ok = got == expected
+        ok_all &= ok
+        print(f"  {'✓' if ok else '✗'}  {name}" + ("" if ok else f"（实际：{got}）"))
+    return ok_all
+
+
 if __name__ == "__main__":
-    raise SystemExit(0 if run() else 1)
+    raise SystemExit(0 if (run() & run_tolerant() & run_source_table()) else 1)

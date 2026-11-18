@@ -23,7 +23,11 @@ RETRY_CODES = (429, 500, 503)      # 暂时性错误：等一会儿再试
 def generate_json(system: str, content: str, schema: dict, temperature: float = 0,
                   client=None, sleep=time.sleep) -> tuple[dict, str]:
     """返回 (JSON 结果, 实际使用的模型名)。
-    client 和 sleep 只在测试时替换（用假的客户端、不真的等待），平时不用传。"""
+    client 和 sleep 只在测试时替换（用假的客户端、不真的等待），平时不用传。
+    环境变量 LLM_PROVIDER=deepseek 时改用 DeepSeek（2026-11-17：Gemini 免费层太慢）。返回的模型名会写进结果，换了模型可以追溯。"""
+    if os.environ.get("LLM_PROVIDER", "gemini").lower() == "deepseek" and client is None:
+        import deepseek_client
+        return deepseek_client.generate_json(system, content, schema=schema, full_schema=True)
     from google import genai
     from google.genai import errors, types
     client = client or genai.Client()   # 自动读取环境变量 GEMINI_API_KEY

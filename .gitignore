@@ -22,3 +22,7 @@ private/
 
 # release tooling (not published)
 tools/
+web_cache/
+official_runs/
+results_v2/
+official_checks/

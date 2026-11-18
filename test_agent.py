@@ -79,8 +79,9 @@ check("行动日志：每一步都有想法、动作、参数、结果、模型"
 # --- 安全规则：模型不能绕过程序核对 ---
 res = agent.run_agent(pages, UHS, ask=fake_model([
     {"action": "submit_evidence", "category": "restricted", "quote": REAL, "page": 3}, {"action": "give_up"}]))
-check("指代句（“Since the dataset ...”，没点名 UHS）→ 拒绝，说明留给人工复核；之后放弃，分类不变",
-      res["outcome"] == "gave_up" and "manual review" in res["steps"][0]["observation"])
+# 2026-11-17 起：deng2020 原文中点名 UHS 之后连续是指代句，指代链规则确认归属 → Agent 提交这句也会通过同一套核对
+check("指代句（“Since the dataset ...”），指代链连续指向前文点名的 UHS → 通过核对，恢复为受限",
+      res["outcome"] == "recovered" and res["category"] == "restricted")
 res = agent.run_agent(pages, UHS, ask=fake_model([
     {"action": "submit_evidence", "category": "public", "quote": "The UHS data are publicly available online.", "page": 3},
     {"action": "give_up"}]))

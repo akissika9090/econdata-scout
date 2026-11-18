@@ -8,8 +8,12 @@
     python step3_merge.py                       合并 results/ 中每篇论文最新的一次结果
     python step3_merge.py --papers deng2020 yu2019
     python step3_merge.py --out report.md       另存为 Markdown 报告
+    python step3_merge.py --results-dir results_v2 --official --out report_v2.md
+                                                V2：对每个数据源查官网（DeepSeek），报告加“论文｜官网”两栏对照；结果存到 official_checks/
+    python step3_merge.py --results-dir results_v2 --official-from official_checks/<文件>.json --out report_v2.md
+                                                重用已保存的官网核查结果，不调用 API
 
-不调用 API：读取已保存的 AI 原始回答，用当前版本的规则重新核对后再合并。
+不加 --official 时不调用 API：读取已保存的 AI 原始回答，用当前版本的规则重新核对后再合并。
 """
 
 import argparse
@@ -50,10 +54,10 @@ def parse_result_name(path: str) -> dict | None:
     return {"paper": m["paper"], "stamp": (date, m["time"], int(m["run"]))}
 
 
-def latest_results(papers: list[str] | None) -> dict[str, str]:
-    """每篇论文取 results/ 中最新的一次结果文件。不符合命名格式的文件跳过并提示。"""
+def latest_results(papers: list[str] | None, results_dir: str = "results") -> dict[str, str]:
+    """每篇论文取 results/（或 results_dir）中最新的一次结果文件。不符合命名格式的文件跳过并提示。"""
     latest = {}
-    for path in sorted(glob.glob("results/*.json")):
+    for path in sorted(glob.glob(f"{results_dir}/*.json")):
         info = parse_result_name(path)
         if info is None:
             print(f"(skipping a file that does not match the naming pattern: {path})")
@@ -118,10 +122,11 @@ def collapse_by_paper(uses: list[dict], series: bool = False) -> list[dict]:
     return result
 
 
-def load_reports(papers: list[str] | None = None) -> list[tuple[str, dict]]:
-    """读取 results/ 中每篇论文最新的一次结果，用当前规则重新核对（开发集、诊断集用）。"""
+def load_reports(papers: list[str] | None = None, results_dir: str = "results") -> list[tuple[str, dict]]:
+    """读取 results/ 中每篇论文最新的一次结果，用当前规则重新核对（开发集、诊断集用）。
+    results_dir="results_v2"：V2 提取结果（含版本、渠道等字段）。"""
     reports = []
-    for paper, path in latest_results(papers).items():
+    for paper, path in latest_results(papers, results_dir).items():
         pages, _ = step1.extract_pages(f"papers/{paper}.pdf")
         with open(path, encoding="utf-8") as f:
             reports.append((paper, step2.verify_result(pages, json.load(f)["ai_raw"])))
@@ -273,7 +278,7 @@ def format_report(merged: list[dict], only_shared: bool = False,
                   paper_limitations: list[tuple[str, dict]] | None = None,
                   other_mentions: list[tuple[str, dict]] | None = None,
                   referenced: list[tuple[str, dict]] | None = None, usage_pending: list[tuple[str, dict]] | None = None,
-                  papers_without_sources: list[str] | None = None) -> str:
+                  papers_without_sources: list[str] | None = None, official: dict | None = None) -> str:
     """paper_limitations：论文级限制（见 paper_limitations()）；other_mentions：排除 / 待核查的候选（见 other_mentions()）；
     referenced / usage_pending：引用或介绍的数据、使用关系待确认的数据。都单独传入，不依赖数据源是否存在。
     一般用 report_markdown(reports) 一次生成，不必分别准备这些参数。"""
@@ -287,11 +292,16 @@ def format_report(merged: list[dict], only_shared: bool = False,
              "- **Model judgments**: the usage relation (used in this paper / cites others / background), which data a period "
              "belongs to, and which part a condition applies to are all model judgments. The program only checks that quotes "
              "exist verbatim, are single sentences, name the data, and have a consistent year structure; it does not prove "
-             "that these semantic judgments are correct.", ""]
+             "that these semantic judgments are correct."]
+    if official is not None:
+        lines.append(OFFICIAL_INTRO)
+    lines.append("")
     for m in merged:
         if only_shared and m["n_papers"] < 2:
             continue
         lines.append(f"## {m['display']}　(used by {m['n_papers']} {papers_word(m['n_papers'])})")
+        if official is not None:
+            lines += comparison_block(m, official.get(m["key"]))
         text, basis = m["verdict"]
         lines.append(f"- **Access: {text}** (basis: {basis})")
         lines.append(f"  - Paper evidence: {m['evidence']}")
@@ -370,7 +380,7 @@ def format_report(merged: list[dict], only_shared: bool = False,
         lines += [f"- {paper} p. {lim['page']}: “{lim['quote']}”" for paper, lim in paper_lims]
         lines.append("")
     if any(not only_shared or m["n_papers"] >= 2 for m in merged):   # 没有显示任何数据源时不列
-        lines += CHECKLIST
+        lines += CHECKLIST if official is None else CHECKLIST[:-2] + [CHECKLIST_OFFICIAL, ""]
     return "\n".join(lines)
 
 
@@ -385,6 +395,114 @@ CHECKLIST = ["## Items to verify (applies to all data above)",
              "- Official link and date checked (the tool has not verified any official entry point; URLs in papers may be "
              "outdated or may not be data entry points)",
              ""]
+
+
+CHECKLIST_OFFICIAL = ("- Official link and date checked: see \"Official site now\" under each source. Only pages the program "
+                      "could read and verify are shown as findings; official pages it could not read are listed for you to open")
+
+OFFICIAL_INTRO = ("- **Official site now (V2)**: for each data source, an agent searched the provider's official website for how the "
+                  "data can be obtained today. A finding is shown only if the program confirmed that the page is an official "
+                  "source and that the quoted sentences appear on it word for word. The channel, eligibility and whether the page "
+                  "covers the paper's version are the model's judgments on that quoted text. Official pages the program could not "
+                  "read are listed for manual checking and are not counted as findings.")
+
+CHECK_LABELS = {"same_version_found": "the page covers the version the paper used",
+                "other_version_only": "only another version / the general route found; the paper's version is not confirmed on this page",
+                "discontinued": "the provider states it is no longer provided",
+                "version_unconfirmed": "not confirmed: the page does not name the years / volumes the paper used"}
+VIA_LABELS = {"paper": "URL in the paper", "learned": "previously verified official domain", "search": "web search",
+              "link": "linked from an official page", "model": "proposed by the model",
+              "known_channel": "known channel (China Statistical Data Library)"}
+NOT_FOUND_LABELS = {"not_found": "no verified official access route found", "budget_exhausted": "no verified official access route "
+                    "found within the step budget", "agent_error": "the check could not run (model call failed)"}
+
+
+def unanswered_leads(res: dict, limit: int = 5) -> list[str]:
+    """官网核查没有给出结论时，告诉用户自己查，并列出核查过程中到过的页面作为线索（不是结论）。
+    先列模型提交过、但程序没能确认是官方来源的页面（附没通过的原因），再列读过的页面。"""
+    leads = {}
+    for s in res.get("steps") or []:
+        url = (s.get("args") or {}).get("url")
+        obs = s.get("observation") or ""
+        if s.get("action") == "submit_finding" and url and obs.startswith("Rejected"):
+            why = obs.split("—", 1)[-1].strip()
+            why = why if len(why) <= 160 else why[:160].rsplit(" ", 1)[0] + " …"
+            leads.setdefault(url, "submitted by the check but not confirmed: " + why)
+    for url in res.get("read") or {}:
+        leads.setdefault(url, "read during the check")
+    if not leads:
+        return ["  - The check reached no relevant page; search the data name and the provider yourself."]
+    out = ["  - Leads from the check (not verified; open them and judge yourself):"]
+    out += [f"    - {u} ({why})" for u, why in list(leads.items())[:limit]]
+    return out
+
+
+def _cell(text: str) -> str:
+    return str(text).replace("|", "\\|").replace("\n", " ")
+
+
+def comparison_block(m: dict, entry: dict | None) -> list[str]:
+    """V2 两栏对照：论文里怎么写（作者当时用的数据）｜官网现在怎么拿。下面附官网原文、官方依据和说明。"""
+    srcs = [u["src"] for u in m["uses"]]
+    chans = list(dict.fromkeys(CHANNEL_LABELS[s["access_channel_shown"]] for s in srcs if s.get("access_channel_shown")))
+    eligs = list(dict.fromkeys(ELIGIBILITY_LABELS[s["eligibility_shown"]] for s in srcs if s.get("eligibility_shown")))
+    restr = list(dict.fromkeys(r for s in srcs for r in s.get("use_restrictions_shown") or []))
+    versions = list(dict.fromkeys(f"{u['src']['version']} ({u['paper']}{'' if u['src'].get('version_verified') else ', model wording'})"
+                                  for u in m["uses"] if u["src"].get("version")))
+    paper = {"channel": "; ".join(chans) or f"no channel stated (access: {m['verdict'][0]})",
+             "elig": "; ".join(eligs) or "not stated", "restr": "; ".join(restr) or "none stated",
+             "version": "; ".join(versions) or "not stated", "source": "see per-paper evidence below"}
+    res = (entry or {}).get("result") or {}
+    f = res.get("finding")
+    extra = []
+    if f:
+        chan = CHANNEL_LABELS.get(f["channel"], f["channel"])
+        if f.get("review_note"):
+            chan += f" ({f['review_note']})"
+        for k in f.get("pending") or (["review"] if f.get("review_pending") else []):
+            chan += {"review": " — whether review / approval is required is unclear; please check",
+                     "payment": " — whether a subscription or purchase is required is unclear; please check",
+                     "free_quota": " — the site has a free quota; whether this product is included is unclear; please check",
+                     "current": f" as of {f.get('as_of')} (release announcement) — current channel pending; please check",
+                     "product": " — for another version or product; the channel for the product the paper used is pending",
+                     "version": " — the page does not name the years / version the paper used; whether they are covered is pending"}[k]
+        official = {"channel": chan,
+                    "elig": ELIGIBILITY_LABELS.get(f["eligibility"], "not stated on the page"),
+                    "restr": "; ".join(f.get("restrictions") or []) or "none stated on the page",
+                    "version": CHECK_LABELS.get(f["check_result"], f["check_result"]),
+                    "source": f"{f['url']} — found via {VIA_LABELS.get(f.get('discovered_via'), f.get('discovered_via'))}"}
+        head = (f"Distributor site now (checked {f.get('checked_on')})" if f.get("evidence_source") == "distributor"
+                else f"Official site now (checked {f.get('checked_on')})")
+        extra.append(f"  - Official-site text (access): “{f['access_quote']}”")
+        if f.get("version_quote") and f["version_quote"] != f["access_quote"]:
+            extra.append(f"  - Official-site text (version): “{f['version_quote']}”")
+        src_label = {"official_page": "the official page itself",
+                     "linked_platform": "a platform linked from the official page",
+                     "distributor": "a distributor's site — not the original provider and not confirmed as official; "
+                                    "check the original provider if you need the authoritative version"}.get(f.get("evidence_source"))
+        if src_label:
+            extra.append(f"  - Evidence comes from: {src_label}")
+        extra.append(f"  - Why this counts as official: {f.get('official_basis')}")
+        for n in f.get("notes") or []:
+            extra.append(f"  - Note: {n}")
+        extra.append("  - Channel, eligibility and version correspondence are model judgments on the quoted official text.")
+    elif res.get("outcome") == "manual_check":
+        head = "Official site now (not verified)"
+        official = {k: "—" for k in paper}
+        official["channel"] = "official page found but the program could not read it — please check manually"
+        extra += [f"  - Please open: {u}" for u in res.get("leads", {})]
+    else:
+        head = "Official site now"
+        official = {k: "—" for k in paper}
+        official["channel"] = NOT_FOUND_LABELS.get(res.get("outcome"), "not checked") if entry else "not checked"
+        if entry:
+            official["channel"] += " — please check this yourself"
+            extra += unanswered_leads(res)
+    rows = [("Access channel", "channel"), ("Eligibility", "elig"), ("Use restrictions", "restr"),
+            ("Version", "version"), ("Source", "source")]
+    table = ["", f"| | In the papers (what prior authors used) | {head} |", "|---|---|---|"]
+    table += [f"| {label} | {_cell(paper[k])} | {_cell(official[k])} |" for label, k in rows]
+    return table + [""] + extra + ([""] if extra else [])
 
 
 USAGE_LABELS = {"analyzed": "used in this paper", "cited": "cites others' research", "described": "background, introduction or comparison",
@@ -417,7 +535,39 @@ def period_line(paper: str, src: dict) -> str:
 def source_line(paper: str, s: dict) -> str:
     """每篇论文的一行：最终分类（未确认时写明是哪一种 unknown）、适用范围、条件来源和证据，
     以及“本文使用”的依据原文（使用关系是模型判断，程序只核对原文存在）。"""
-    return _access_line(paper, s) + usage_text(s) + provider_text(s) + channel_text(s)
+    return _access_line(paper, s) + usage_text(s) + version_text(s) + details_text(s) + provider_text(s) + channel_text(s)
+
+
+CHANNEL_LABELS = {"public_download": "public download", "registration_download": "free download after registration",
+                  "subscription": "subscription", "purchase": "paid purchase", "apply_to_provider": "apply to the data provider",
+                  "request_from_author": "request from the author", "special_agreement": "special agreement with the provider"}
+ELIGIBILITY_LABELS = {"researchers": "researchers can apply", "individuals": "individuals can apply",
+                      "institution_must_apply": "an institution must apply"}
+
+
+def version_text(s: dict) -> str:
+    """V2：论文使用的版本、文件或匹配方式。旧结果没有这个字段时不显示。"""
+    v = s.get("version")
+    if not v:
+        return ""
+    ev = s.get("version_evidence") or {}
+    if s.get("version_verified"):
+        return f"\n    - Version / file used in this paper: {v} (source text located) — p. {ev['page']}: “{ev['quote']}”"
+    return f"\n    - Version / file used in this paper (model's wording; not found verbatim in a verified sentence): {v}"
+
+
+def details_text(s: dict) -> str:
+    """V2：论文中获取说明的细分（渠道｜资格｜使用限制）。只在条件已核对通过时出现；渠道和资格是模型对该原文的判断。"""
+    parts = []
+    if s.get("access_channel_shown"):
+        parts.append(CHANNEL_LABELS[s["access_channel_shown"]])
+    if s.get("eligibility_shown"):
+        parts.append(ELIGIBILITY_LABELS[s["eligibility_shown"]])
+    parts += [f"restriction: {r}" for r in s.get("use_restrictions_shown") or []]
+    if not parts:
+        return ""
+    return ("\n    - Access details in the paper (channel and eligibility are model judgments on the verified sentence above; "
+            "restrictions are copied verbatim): " + " | ".join(parts))
 
 
 def provider_text(s: dict) -> str:
@@ -490,7 +640,7 @@ def _access_line(paper: str, s: dict) -> str:
     return line
 
 
-def report_markdown(reports: list[tuple[str, dict]], only_shared: bool = False) -> str:
+def report_markdown(reports: list[tuple[str, dict]], only_shared: bool = False, official: dict | None = None) -> str:
     """从核对好的报告一次生成完整的 Markdown 报告（合并、论文级限制、其他提及、引用 / 待确认的数据）。
     step3 main 和 scout.py 都用这个函数，报告的组成只有一份。"""
     merged = merge_reports(reports)
@@ -500,7 +650,7 @@ def report_markdown(reports: list[tuple[str, dict]], only_shared: bool = False) 
         other_mentions=other_mentions(reports),
         referenced=[(p, x) for p, r in reports for x in r.get("referenced", [])],
         usage_pending=[(p, x) for p, r in reports for x in r.get("usage_pending", [])],
-        papers_without_sources=[p for p, r in reports if not r.get("data_sources")])
+        papers_without_sources=[p for p, r in reports if not r.get("data_sources")], official=official)
 
 
 def main():
@@ -508,8 +658,29 @@ def main():
     parser.add_argument("--papers", nargs="*", help="merge only these papers")
     parser.add_argument("--shared", action="store_true", help="show only data used by two or more papers")
     parser.add_argument("--out", help="also save the report as a Markdown file")
+    parser.add_argument("--results-dir", default="results", help="where the saved extraction results are (results_v2 for V2)")
+    parser.add_argument("--official", action="store_true",
+                        help="V2: check each data source on the provider's official site (DeepSeek; costs API calls) "
+                             "and save the results to official_checks/")
+    parser.add_argument("--official-from", help="V2: reuse saved official-check results (a JSON file from --official); no API calls")
     args = parser.parse_args()
-    text = report_markdown(load_reports(args.papers), only_shared=args.shared)
+    reports = load_reports(args.papers, args.results_dir)
+    official = None
+    if args.official_from:
+        with open(args.official_from, encoding="utf-8") as f:
+            official = json.load(f)
+    elif args.official:
+        import official_check as oc
+        from datetime import datetime
+        from web_tools import Web
+        print("Checking official sites...")
+        official = oc.check_merged(merge_reports(reports), Web(), oc.load_learned(), verbose=True)
+        os.makedirs("official_checks", exist_ok=True)
+        path = f"official_checks/{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(official, f, ensure_ascii=False, indent=1)
+        print(f"Official-check results saved to {path} (reuse with --official-from {path})\n")
+    text = report_markdown(reports, only_shared=args.shared, official=official)
     print(text)
     if args.out:
         with open(args.out, "w", encoding="utf-8") as f:

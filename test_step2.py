@@ -18,7 +18,7 @@ PDF = "papers/deng2020.pdf"
 # 模拟 AI 的回答：前两条是正确的，后两条故意出错
 FAKE_AI_ANSWER = {
     "data_sources": [
-        {   # 引用真实存在、原文写明不公开；但证据句是指代句 → 需要人工复核（2026-11-06 起）
+        {   # 引用真实存在、原文写明不公开；证据句是指代句，但指代链连续指向前文点名的 UHS → 受限已验证（2026-11-17 起；11-06 至 11-16 为需要人工复核）
             "name": "Urban Household Survey", "provider": "National Bureau of Statistics of China",
             "kind": "dataset", "sample_period": "2002–2009", "unit": "household", "access_category": "restricted",
             "period_evidence": {"quote": "Since the dataset is not available to the public, we can only get the data from 2002 to 2009.", "page": 3},  # 期间有证据，年份都在原文里 → 通过
@@ -64,7 +64,7 @@ FAKE_AI_ANSWER = {
 }
 
 # 第一条（UHS）的证据是指代句 “Since the dataset ...”：2026-11-06 起不据此确认归属 → 未确认（需要人工复核），以前是受限
-EXPECTED_CATEGORIES = ["unknown", "unknown", "unknown", "unknown", "unknown"]
+EXPECTED_CATEGORIES = ["restricted", "unknown", "unknown", "unknown", "unknown"]
 EXPECTED_PERIOD_UNVERIFIED = [False, True, True, False, False]
 
 

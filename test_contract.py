@@ -84,8 +84,9 @@ dpages, _ = step1.extract_pages("papers/deng2020.pdf")
 uhs = source("Urban Household Survey (UHS)",
              "Our data come from the Urban Household Survey (UHS) since 1986 conducted by the National Bureau of Statistics of China.", 3)
 st = status(dpages, uhs, "restricted", "Since the dataset is not available to the public, we can only get the data from 2002 to 2009.", 3)
-check("对照：单句、指代前文点名的数据（deng2020 UHS）→ 指代句，需要人工复核（2026-11-06 起，以前是 verified）",
-      st == "anaphor_reference", st)
+# 2026-11-17：deng2020 中点名句之后连续是指代句（The survey… / Therefore, the dataset…），中间没有其他数据 → 指代链确认
+check("对照：单句、指代链连续指向前文点名的数据（deng2020 UHS）→ verified（2026-11-06 至 11-16 为 anaphor_reference）",
+      st == "verified", st)
 NV1 = ("We use the restricted data ﬁles containing month of death and covering all counties in the United States "
        "to measuring monthly mortality at the county level.")
 st = status(bpages, nvss, "restricted", NV1, 46)
