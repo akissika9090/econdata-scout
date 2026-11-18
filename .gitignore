@@ -11,6 +11,8 @@ __pycache__/
 papers/
 runs/*/pdfs/
 runs/*/rejected/
+# run outputs (candidate lists contain OpenAlex abstracts; reports quote papers) — never published
+runs/
 
 # private / stale working files
 Claude outputs/
