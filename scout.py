@@ -214,6 +214,14 @@ def run(topic: str, use_agent: bool = False, extra_pdfs: list[str] | None = None
     report_path = os.path.join(run_dir, "report.md")
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(report_text)
+    # 6. 入手経路カタログ（中国経済データ 9 種）：主要データごとの日本語結果表。失敗しても本体のレポートには影響しない
+    try:
+        from access_catalog import render_table_ja
+        with open(os.path.join(run_dir, "access_table_ja.md"), "w", encoding="utf-8") as f:
+            f.write(render_table_ja(reports))
+        print(f"Access table (catalog) saved to {os.path.join(run_dir, 'access_table_ja.md')}")
+    except Exception as e:
+        print(f"  ✗ access table failed: {type(e).__name__}: {str(e)[:200]}")
     record = {"topic": topic, "run_dir": run_dir, "agent": use_agent, "official": use_official, "papers": papers,
               "duplicate_uploads": duplicate_uploads, "upload_suggested": found.get("upload", []), "report": report_path}
     save_json(os.path.join(run_dir, "run.json"), record)

@@ -104,8 +104,11 @@ EXTRACT_TOOL = {
                     "type": "object",
                     "properties": {
                         "name": {"type": "string", "description": "数据名称，如 Urban Household Survey"},
-                        "role": {"type": "string", "enum": ["main", "robustness", "supplementary"],
-                                 "description": "main：主要分析；robustness：稳健性检验；supplementary：情景预测等补充分析"},
+                        "role": {"type": "string", "enum": ["main", "control", "robustness", "supplementary"],
+                                 "description": "main：主要分析（核心解释变量、被解释变量、工具变量等）；control：只提供控制变量；"
+                                                "robustness：稳健性检验；supplementary：情景预测、异质性、机制、调节效应等补充分析"},
+                        "also_controls": {"type": "boolean",
+                                          "description": "role 为 main 且同一份数据也提供控制变量时为 true；其他情况为 false"},
                         "kind": {"type": "string", "enum": ["dataset", "policy_info"],
                                  "description": "dataset：统计、调查、行政等数据；policy_info：政策名单、实施时间等用于构造处理组的信息"},
                         "provider": {"type": ["string", "null"], "description": "提供机构，原文没写则为 null"},
@@ -142,7 +145,7 @@ EXTRACT_TOOL = {
                         "use_restrictions": {"type": "array", "items": {"type": "string"},
                                              "description": "使用限制（如只能在指定场所使用、需要签署协议），每条从 access_evidence 原文逐字复制；没有则为空数组"},
                     },
-                    "required": ["name", "role", "kind", "sample_period", "period_evidence",
+                    "required": ["name", "role", "also_controls", "kind", "sample_period", "period_evidence",
                                  "access_category", "source_evidence", "access_evidence",
                                  "access_applies_to", "usage", "usage_evidence", "period_form", "period_years",
                                  "version", "version_evidence", "access_channel", "eligibility", "use_restrictions"],
@@ -175,6 +178,8 @@ SYSTEM_PROMPT = """你是经济学研究的数据审查助手。你的任务是�
    区分“数据本身”和“附加结果”：例如 “summary statistics are available upon request” 说的是统计表，不是数据的获取条件。
 4. 引用必须从原文逐字复制一句话，页码以文字前面的 [第N页] 为准。程序会逐条核对，编造或改写的引用会被拒绝。
 5. 记录作者自己用到的所有数据，包括稳健性检验、情景预测等补充分析用到的数据（role 分别记为 robustness、supplementary）；
+   只用来提供控制变量的数据，role 记为 control；同一份数据如果也提供主要分析的变量（核心解释变量、被解释变量、工具变量），
+   role 记为 main，并把 also_controls 记为 true（2026-11-18 本人定）；
    即使相关结果“可应要求提供”而没有放在正文，只要作者说用了这份数据，也要记录。
    文献综述里提到的、其他研究所用的数据或结果，可以记录，但 usage 必须记为 cited。
 6. 政策信息也算数据源：例如试点城市名单、政策实施时间、处理组定义的来源（如“从国家发改委收集”），kind 记为 policy_info。
@@ -739,7 +744,7 @@ def preceding_context(pages, evidence: dict, max_chars: int = 900) -> str:
     # 用去掉空白后的文字定位，再换算回原文位置（逐字符做简单统一，速度快）
     squashed, index_map = [], []
     for i, ch in enumerate(flat):
-        sq = unicodedata.normalize("NFKC", ch).lower()
+        sq = unicodedata.normalize("NFKC", ch).lower().translate(step1.QUOTE_MAP)
         if sq.strip() and ch not in "-‐‑–—\u00ad":
             squashed.append(sq)
             index_map.extend([i] * len(sq))
@@ -1126,7 +1131,7 @@ def print_report(report: dict, mode: str) -> None:
         se, ae = src["source_evidence"], src["access_evidence"]
         pe = src.get("period_evidence")
         kind = "（政策信息）" if src.get("kind") == "policy_info" else ""
-        kind += {"robustness": "（稳健性检验）", "supplementary": "（补充分析）"}.get(src.get("role"), "")
+        kind += {"robustness": "（稳健性检验）", "supplementary": "（补充分析）", "control": "（控制变量）"}.get(src.get("role"), "")
         period = src.get("sample_period") or "原文未写"
         if src.get("period_unverified"):
             period += "  ⚠ 未能用原文核对，请自行确认"

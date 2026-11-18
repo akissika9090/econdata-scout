@@ -1,0 +1,727 @@
+{
+ "_说明": "EconData Scout 入手経路カタログ（中国経済データ 9 種）。DataPilot catalog_v2.json（v2.1、2026-11-18 凍結）と同じ判定内容に、利用者向けの日本語欄（ja）を加えたもの。判定ロジックは access_catalog.py。",
+ "products": [
+  {
+   "id": "CN-NBS-CSY",
+   "product": "《中国统计年鉴》（国家统计局编，全国综合年鉴）",
+   "match": {
+    "names": [
+     "china statistical yearbook",
+     "中国统计年鉴"
+    ],
+    "not_if_followed_by": [
+     "on ",
+     "for ",
+     "of "
+    ],
+    "exclude": [
+     "city",
+     "城市",
+     "county",
+     "县域",
+     "labor",
+     "labour",
+     "劳动",
+     "population",
+     "人口",
+     "energy",
+     "能源",
+     "environment",
+     "环境",
+     "rural",
+     "农村",
+     "industry",
+     "工业",
+     "regional",
+     "区域",
+     "provinc",
+     "统计年鉴（"
+    ]
+   },
+   "versions": {
+    "kind": "edition_year",
+    "data_year_offset": 1,
+    "online": [
+     2005,
+     2025
+    ],
+    "listed_only": [
+     1999,
+     2004
+    ]
+   },
+   "channel": "online_view",
+   "channel_label": "在统计局网站在线查看本版表格",
+   "entry_template": "https://www.stats.gov.cn/sj/ndsj/{Y}/indexch.htm",
+   "evidence": [
+    {
+     "url": "https://www.stats.gov.cn/sj/ndsj/index.html",
+     "checked": "2026-11-17",
+     "quote": "中国统计年鉴 2025年 … 1999年（年鉴总目录；2005–2025 年各版链接到 /sj/ndsj/{年}/indexch.htm）"
+    },
+    {
+     "url": "https://www.stats.gov.cn/sj/ndsj/2014/html/note.htm",
+     "checked": "2026-11-18",
+     "quote": "《中国统计年鉴―2014》系统收录了全国和各省、自治区、直辖市2013年经济、社会各方面的统计数据"
+    }
+   ],
+   "not_for": "省、市统计年鉴；各专业年鉴（城市、劳动、人口和就业、能源等）；统计局微观数据",
+   "still_check": "在线表格是否有论文用的那张表；在线版能否下载（页面是网页表格）",
+   "verified_by": "Claude（web_cache 页面），待本人复核",
+   "next_step": "按论文的数据年份找对应年版（通常数据年份 + 1），在统计局“统计年鉴”页打开该版，按论文用到的指标找表",
+   "executable": true,
+   "access": {
+    "restriction": "open",
+    "label": "公开：统计局网站在线查看",
+    "whole_product": false
+   },
+   "ja": {
+    "product": "『中国統計年鑑』（国家統計局）",
+    "access": "公開：国家統計局サイトでオンライン閲覧",
+    "next_step": "論文のデータ年に対応する年版（通常はデータ年＋1）を統計局の「統計年鑑」ページで開き、論文の指標の表を探す",
+    "still_check": "論文が使った表がオンライン版にあるか。年版が推定の場合はその確認"
+   }
+  },
+  {
+   "id": "CN-NBS-CITYYB",
+   "product": "《中国城市统计年鉴》（国家统计局城市社会经济调查司编，纸质出版）",
+   "match": {
+    "names": [
+     "china city statistical yearbook",
+     "china urban statistical yearbook",
+     "中国城市统计年鉴"
+    ],
+    "exclude": [
+     "county",
+     "县",
+     "provinc"
+    ]
+   },
+   "versions": {
+    "kind": "edition_year",
+    "data_year_offset": 1,
+    "known": {
+     "2016": "https://www.stats.gov.cn/zs/tjwh/tjkw/tjzl/202302/t20230215_1907851.html",
+     "2021": "https://www.stats.gov.cn/zs/tjwh/tjkw/tjzl/202302/t20230220_1913734.html"
+    }
+   },
+   "channel": "purchase",
+   "channel_label": "纸质年鉴，向中国统计出版社购买（官网出版物页标定价）",
+   "entry_template": null,
+   "evidence": [
+    {
+     "url": "https://www.stats.gov.cn/zs/tjwh/tjkw/tjzl/202302/t20230215_1907851.html",
+     "checked": "2026-11-18",
+     "quote": "《中国城市统计年鉴--2016》 作者：国家统计局城市社会经济调查司 … 定价： 358.00"
+    }
+   ],
+   "not_for": "统计局在线数据库；各城市自己的统计年鉴",
+   "still_check": "目录只核实了 2016、2021 年版的出版物页；其他年版要查是否仍可购买（早年版本可能售罄，可到图书馆查阅）",
+   "verified_by": "Claude（web_cache 页面），待本人复核",
+   "next_step": "到学校图书馆或 CNKI 年鉴库查对应年版；需要自有一套时向中国统计出版社询购（早年版可能售罄）",
+   "executable": false,
+   "access": {
+    "restriction": "purchase",
+    "label": "纸质出版物：购买，或在图书馆 / CNKI 年鉴库查阅",
+    "whole_product": false
+   },
+   "ja": {
+    "product": "『中国城市統計年鑑』（国家統計局）",
+    "access": "紙の出版物：購入、または図書館・CNKI 年鑑データベースで閲覧",
+    "next_step": "大学図書館または CNKI 年鑑データベースで該当年版を探す。手元に必要なら中国統計出版社に問い合わせる（古い年版は品切れの可能性）",
+    "still_check": "該当年版を購入・閲覧できるか（カタログで出版物ページを確認したのは 2016・2021 年版のみ）"
+   }
+  },
+  {
+   "id": "CN-NBS-CENSUS",
+   "product": "全国人口普查汇总资料（国家统计局；2000 年第五次、2010 年第六次的资料表在统计局网站在线）",
+   "match": {
+    "names": [
+     "population census",
+     "census",
+     "人口普查",
+     "六普",
+     "五普",
+     "七普"
+    ],
+    "exclude": [
+     "microdata",
+     "micro data",
+     "micro-data",
+     "微观",
+     "个人数据",
+     "sample data",
+     "抽样数据",
+     "1%",
+     "0.1%",
+     "ipums",
+     "economic census",
+     "经济普查",
+     "agricultural census",
+     "农业普查",
+     "us census",
+     "u.s. census",
+     "census bureau",
+     "percent sample",
+     "% sample",
+     "sample of",
+     "抽样",
+     "county",
+     "分县",
+     "by province",
+     "published by province",
+     "分省",
+     "township",
+     "乡镇",
+     "prefecture",
+     "地级"
+    ]
+   },
+   "versions": {
+    "kind": "census_round",
+    "online": {
+     "2000": "https://www.stats.gov.cn/sj/pcsj/rkpc/5rp/index.htm",
+     "2010": "https://www.stats.gov.cn/sj/pcsj/rkpc/6rp/indexch.htm"
+    },
+    "aliases": {
+     "第五次": 2000,
+     "fifth": 2000,
+     "五普": 2000,
+     "第六次": 2010,
+     "sixth": 2010,
+     "六普": 2010,
+     "第七次": 2020,
+     "seventh": 2020,
+     "七普": 2020
+    },
+    "needs_name_words": [
+     "table",
+     "tabulation",
+     "表",
+     "汇总",
+     "资料",
+     "yearbook",
+     "by occupation",
+     "by age",
+     "by industry",
+     "working hours"
+    ]
+   },
+   "channel": "public_download",
+   "channel_label": "统计局网站在线查表（2010 年版每张表有 Excel 下载）",
+   "entry_template": "https://www.stats.gov.cn/sj/pcsj/rkpc/6rp/indexch.htm",
+   "evidence": [
+    {
+     "url": "https://www.stats.gov.cn/sj/pcsj/rkpc/6rp/lefte.htm",
+     "checked": "2026-11-18",
+     "quote": "中国2010年人口普查资料（目录：4-13 全国分性别、职业小类、周工作时间的正在工作人口 等；438 个 Excel 表链接）"
+    },
+    {
+     "url": "https://www.stats.gov.cn/sj/pcsj/rkpc/5rp/left.htm",
+     "checked": "2026-11-17",
+     "quote": "中国2000年人口普查资料 第一部分 全部数据资料 第一卷 概要 表1-1 省、自治区、直辖市的户数、人口数和性别比"
+    }
+   ],
+   "not_for": "普查微观数据（个人 / 家庭记录）；1% 人口抽样调查；经济普查、农业普查；其他国家的普查；分县 / 分省 / 乡镇普查资料（另行出版的资料）",
+   "still_check": "论文用的是汇总表还是微观数据（名字没写时不能确定）；哪一次普查；具体表号。2020 年第七次普查目录只核实到“主要数据”公报页",
+   "verified_by": "Claude（web_cache 页面），待本人复核",
+   "identity": {
+    "generic_names": [
+     "population census",
+     "census",
+     "人口普查"
+    ],
+    "evidence_any": [
+     "china",
+     "chinese",
+     "prc",
+     "中国",
+     "全国",
+     "national bureau of statistics",
+     "nbs",
+     "国家统计局",
+     "fifth national population census",
+     "sixth national population census",
+     "seventh national population census",
+     "第五次",
+     "第六次",
+     "第七次"
+    ]
+   },
+   "next_step": "确认论文用的是哪次普查的哪张汇总表；2000、2010 年汇总表在统计局普查资料页在线查看，2010 年可下载 Excel",
+   "executable": true,
+   "access": {
+    "restriction": "open",
+    "label": "公开：统计局网站在线查看（2010 年可下载 Excel）",
+    "whole_product": false
+   },
+   "ja": {
+    "product": "全国人口センサス集計資料（国家統計局）",
+    "access": "公開：統計局サイトでオンライン閲覧（2010 年は Excel あり）",
+    "next_step": "論文がどの回のセンサスのどの集計表を使ったか確認する。2000・2010 年の集計表は統計局のセンサスページで閲覧できる",
+    "still_check": "集計表かミクロデータか、表番号。県別・省別資料は別刊で、オンライン集計表とは別物"
+   }
+  },
+  {
+   "id": "CN-CMA",
+   "product": "中国气象数据网（国家气象信息中心）发布的地面气象观测数据（站点日值等）",
+   "match": {
+    "names": [
+     "china meteorological data",
+     "cmdss",
+     "national meteorological information cent",
+     "meteorological information center",
+     "中国气象数据网",
+     "中国气象科学数据共享服务网",
+     "国家气象信息中心",
+     "surface weather data in china",
+     "中国地面气候资料",
+     "china meteorological administration",
+     "cma"
+    ],
+    "fields": [
+     "name",
+     "provider"
+    ],
+    "require_any_in_name": [
+     "meteorolog",
+     "weather",
+     "climat",
+     "气象",
+     "气候",
+     "temperature",
+     "precipitation",
+     "cmdss",
+     "cma"
+    ],
+    "exclude": [
+     "grid",
+     "格点",
+     "reanalysis",
+     "再分析",
+     "satellite",
+     "卫星"
+    ]
+   },
+   "versions": {
+    "kind": "platform",
+    "dataset_words": [
+     "daily",
+     "日值",
+     "v3.0",
+     "surf_",
+     "station",
+     "站点",
+     "逐日"
+    ]
+   },
+   "channel": "registration_download",
+   "channel_label": "在中国气象数据网实名注册后下载（限开放清单内的资料）",
+   "entry_template": "https://data.cma.cn/",
+   "evidence": [
+    {
+     "url": "http://data.cma.cn/cmaOld/article/getLeft/id/356/",
+     "checked": "2026-11-18",
+     "quote": "个人实名注册用户可在中国气象数据网浏览、查询和下载中国气象局最新公布的《基本气象资料和产品开放清单》内的气象数据和产品。"
+    }
+   ],
+   "not_for": "格点、再分析、卫星产品；未进入开放清单的资料；第三方转存的拷贝",
+   "still_check": "论文用的是哪个数据集（站点日值 V3.0 等）、是否仍在开放清单；部分资料需要教育科研实名注册",
+   "verified_by": "Claude（web_cache 页面），待本人复核",
+   "identity": {
+    "generic_names": [
+     "cma",
+     "meteorological information cent",
+     "national meteorological information cent"
+    ],
+    "evidence_any": [
+     "china",
+     "chinese",
+     "中国",
+     "cmdss",
+     "data.cma.cn"
+    ]
+   },
+   "next_step": "在中国气象数据网实名注册，按论文写的数据集（如地面站日值）在开放清单里查找；不在清单的资料另行咨询",
+   "executable": false,
+   "access": {
+    "restriction": "registration",
+    "label": "实名注册后下载（限开放清单内的资料）",
+    "whole_product": false
+   },
+   "ja": {
+    "product": "中国気象データネット（国家気象情報センター）の地上観測データ",
+    "access": "実名登録後にダウンロード（公開リスト内の資料に限る）",
+    "next_step": "中国気象データネットで実名登録し、論文のデータセット（地上観測の日値など）が公開リストにあるか確認する",
+    "still_check": "データセットが公開リストに入っているか"
+   }
+  },
+  {
+   "id": "CN-AIR-MEE",
+   "product": "全国城市 / 监测站空气质量数据（生态环境部、中国环境监测总站发布）",
+   "match": {
+    "names": [
+     "china national environmental monitoring",
+     "national environmental monitoring cent",
+     "ministry of environmental protection",
+     "ministry of ecology and environment",
+     "cnemc",
+     "中国环境监测总站",
+     "生态环境部",
+     "环境保护部"
+    ],
+    "fields": [
+     "name",
+     "provider"
+    ],
+    "require_any_in_name": [
+     "air",
+     "aqi",
+     "api",
+     "pm2.5",
+     "pm10",
+     "pollut",
+     "空气",
+     "污染"
+    ],
+    "exclude": [
+     "water",
+     "水质",
+     "emission",
+     "排放",
+     "satellite",
+     "卫星"
+    ]
+   },
+   "versions": {
+    "kind": "any"
+   },
+   "channel": "no_public_history",
+   "channel_label": "官方只实时发布；历史数据没有面向研究者的公开下载入口（历史月报只向环保系统内单位提供）",
+   "entry_template": "https://air.cnemc.cn:18007/",
+   "evidence": [
+    {
+     "url": "https://www.cnemc.cn/gzdt/wjtz/201603/t20160315_648691.shtml",
+     "checked": "2026-11-17",
+     "quote": "向环保系统内单位（首先向省级站和地级城市站）提供自2013年以来全国城市环境空气质量审核后月报和年报历史数据。"
+    },
+    {
+     "url": "https://air.cnemc.cn:18007/",
+     "checked": "2026-11-17",
+     "quote": "全国城市空气质量实时发布（AQI实时报、AQI日报）"
+    }
+   ],
+   "not_for": "卫星反演污染数据；地方生态环境局另行公开的数据；第三方整理的历史数据",
+   "still_check": "是否有面向研究者的历史数据申请途径（未找到公开说明）；论文用的第三方整理版本",
+   "verified_by": "Claude（web_cache 页面），待本人复核",
+   "identity": {
+    "generic_names": [
+     "ministry of environmental protection",
+     "ministry of ecology and environment"
+    ],
+    "evidence_any": [
+     "china",
+     "chinese",
+     "prc",
+     "中国",
+     "cnemc",
+     "mee.gov.cn"
+    ]
+   },
+   "next_step": "官方没有面向研究者的历史数据下载入口：先查论文脚注里写的整理来源；没有写明时，考虑卫星反演等替代数据",
+   "executable": false,
+   "access": {
+    "restriction": "no_public",
+    "label": "官方只实时发布；历史数据不对研究者开放（历史月报只向环保系统内单位提供）",
+    "whole_product": true
+   },
+   "ja": {
+    "product": "全国の都市・観測所の大気質データ（生態環境部・中国環境監測総站）",
+    "access": "公式はリアルタイム公開のみ。過去データは研究者向けに公開されていない（過去の月報は環境行政内部のみ）",
+    "next_step": "論文の脚注にあるデータ整理元を確認する。記載がなければ衛星推計データなどの代替を検討する",
+    "still_check": "研究者向けの過去データ申請経路（公開された説明は見つからず）"
+   }
+  },
+  {
+   "id": "CN-CGSS",
+   "product": "中国综合社会调查（CGSS）调查数据（中国人民大学）",
+   "match": {
+    "names": [
+     "chinese general social survey",
+     "china general social survey",
+     "cgss",
+     "中国综合社会调查"
+    ],
+    "exclude": []
+   },
+   "versions": {
+    "kind": "survey_year",
+    "known": {
+     "2010": "https://www.cnsda.org/index.php?r=projects/view&id=15553986",
+     "2012": "https://www.cnsda.org/index.php?r=projects/view&id=85111874"
+    }
+   },
+   "channel": "apply_to_provider",
+   "channel_label": "在中国国家调查数据库（CNSDA）注册后申请下载；2026-07 中国人民大学社会科学数据资源平台上线，网址未核实",
+   "entry_template": null,
+   "evidence": [
+    {
+     "url": "https://www.cnsda.org/index.php?id=15553986&r=projects/view",
+     "checked": "2026-11-18",
+     "quote": "本网站将不再进行数据更新，原有数据继续提供日常维护。获取更多数据，请前往“中国人民大学社会科学数据资源平台”注册申请！"
+    },
+    {
+     "url": "https://www.cnsda.org/index.php?id=15553986&r=projects/view",
+     "checked": "2026-11-18",
+     "quote": "中国综合社会调查（2010） … 原始数据（stata14.0版本） … 样本量： 11783"
+    },
+    {
+     "url": "https://cssn.cn/shx/shx_gcz/202607/t20260723_6060603.shtml",
+     "checked": "2026-11-18",
+     "quote": "7月13日，中国人民大学社会科学数据资源平台上线发布暨中国综合社会调查2026启动会在京举行（报道未给出平台网址）"
+    }
+   ],
+   "not_for": "CGSS 以外的人大调查（CEPS、CLDS 等）",
+   "still_check": "论文用的年度在新平台上是否可申请；审核要求；新平台网址与迁移情况（截至 2026-11-18 未核实）",
+   "verified_by": "Claude（web_cache 页面），待本人复核",
+   "next_step": "打开入口里对应年度的 CNSDA 页面，注册并提交使用申请；若页面提示已迁移到中国人民大学社会科学数据资源平台，按提示到新平台申请",
+   "executable": true,
+   "access": {
+    "restriction": "application",
+    "label": "注册后提交使用申请",
+    "whole_product": false
+   },
+   "ja": {
+    "product": "中国総合社会調査 CGSS（中国人民大学）",
+    "access": "登録後に利用申請",
+    "next_step": "入口にある該当年度の CNSDA ページで登録・申請する。新プラットフォーム（2026 年 7 月公開、URL 未確認）への移行表示があればそれに従う",
+    "still_check": "論文の年度が申請可能か（入口を確認済みなのは 2010・2012 年）。新プラットフォームへの移行状況"
+   }
+  },
+  {
+   "id": "CN-CFPS",
+   "product": "中国家庭追踪调查（CFPS）调查数据（北京大学中国社会科学调查中心）",
+   "match": {
+    "names": [
+     "china family panel stud",
+     "cfps",
+     "中国家庭追踪调查"
+    ],
+    "exclude": []
+   },
+   "versions": {
+    "kind": "any"
+   },
+   "channel": "registration_download",
+   "channel_label": "在 CFPS 数据平台注册登录、填写申请后免费下载公开数据；限制性数据另行申请",
+   "entry_template": "https://opendata.pku.edu.cn/dataverse/CFPS",
+   "evidence": [
+    {
+     "url": "https://www.isss.pku.edu.cn/cfps/docs/20191219135858921878.pdf",
+     "checked": "2026-11-18",
+     "quote": "CFPS数据平台 http://www.isss.pku.edu.cn/cfps/download/ … 数据申请问题 个人账号问题"
+    },
+    {
+     "url": "https://tsg.hzxy.edu.cn/（高校图书馆说明，非官方）",
+     "checked": "2026-11-18",
+     "quote": "中国家庭追踪调查，http://opendata.pku.edu.cn/dataverse/CFPS"
+    }
+   ],
+   "not_for": "CFPS 限制性数据（区县变量、数据机房）",
+   "still_check": "注册申请的具体流程只在非官方说明里读到；论文是否用了限制性数据",
+   "verified_by": "Claude（网页搜索：官方文档 + 非官方说明），待本人复核",
+   "next_step": "在 CFPS 数据平台注册登录并提交申请；确认论文是否用了限制性数据（区县变量）",
+   "executable": false,
+   "access": {
+    "restriction": "application",
+    "label": "注册后提交申请；限制性数据另行申请",
+    "whole_product": false
+   },
+   "ja": {
+    "product": "中国家庭追跡調査 CFPS（北京大学）",
+    "access": "登録後に申請（制限データは別途申請）",
+    "next_step": "CFPS データプラットフォームで登録・申請する。論文が制限データ（区県変数）を使ったか確認する",
+    "still_check": "申請手順は非公式の説明でしか確認できていない。制限データの使用有無"
+   }
+  },
+  {
+   "id": "CN-CSMAR",
+   "product": "CSMAR 中国经济金融研究数据库（深圳希施玛数据科技有限公司，原国泰安）",
+   "match": {
+    "names": [
+     "csmar",
+     "china stock market and accounting research",
+     "china stock market & accounting research",
+     "china stock market accounting research",
+     "国泰安",
+     "希施玛"
+    ],
+    "fields": [
+     "name",
+     "provider"
+    ],
+    "exclude": []
+   },
+   "versions": {
+    "kind": "unversioned",
+    "note": "CSMAR 由 200 多个子库组成，学校通常只订阅其中一部分；论文多只写“CSMAR”，没写子库"
+   },
+   "channel": "institution_subscription",
+   "channel_label": "商业数据库，按子库订阅；一般经学校图书馆订阅使用（官网提供网页平台、数据接口、WRDS 三种访问方式）",
+   "entry_template": "https://data.csmar.com/",
+   "next_step": "在学校图书馆数据库列表查询是否订阅 CSMAR；再核对论文所需的子库（如财务报表、治理结构、银行研究等）和年份是否在订阅范围内。学校未订阅时可问图书馆有无试用，或通过 WRDS（若学校订阅 WRDS）",
+   "evidence": [
+    {
+     "url": "https://csmar.com/en/channels/77.html",
+     "checked": "2026-11-18",
+     "quote": "Remotely and IP-based access web interface …; Data Loader Feed or API …; About 13 CSMAR databases are available on WRDS platform（页面未写订阅条件和价格，有 TRY FOR FREE 按钮）"
+    },
+    {
+     "url": "https://www.ckgsb.edu.cn/library/research/database_detail/3618",
+     "checked": "2026-11-18",
+     "quote": "我馆从该系列数据库中的股票市场、上市公司及宏观经济等板块中选购了35个数据库（学校图书馆页，说明按子库选购；非 CSMAR 官方）"
+    }
+   ],
+   "not_for": "CNRDS、Wind、RESSET 等其他商业数据库；CSMAR 转引的原始官方数据（如统计局宏观数据）",
+   "still_check": "所在学校是否订阅、订了哪些子库（官方页面未写订阅条件，需问图书馆）；论文所用子库和年份",
+   "verified_by": "Claude（网页搜索 / 抓取 2026-11-18），待本人复核",
+   "executable": false,
+   "access": {
+    "restriction": "subscription",
+    "label": "商业数据库，按子库机构订阅",
+    "whole_product": true
+   },
+   "ja": {
+    "product": "CSMAR 中国経済金融研究データベース",
+    "access": "商用データベース：サブデータベース単位の機関契約",
+    "next_step": "大学図書館が CSMAR を契約しているか、論文に必要なサブデータベースと年が契約範囲に入っているか確認する。未契約ならトライアルや WRDS 経由の利用を図書館に相談する",
+    "still_check": "所属大学の契約状況と範囲（公式ページに契約条件の記載なし）"
+   }
+  },
+  {
+   "id": "CN-NBS-ASIE",
+   "product": "中国工业企业数据库（国家统计局规模以上工业企业年度调查微观数据，ASIE）",
+   "match": {
+    "names": [
+     "industrial enterprise database",
+     "industrial enterprises database",
+     "industrial firms database",
+     "industrial firm database",
+     "annual survey of industrial",
+     "asie",
+     "above designated size",
+     "industry business performance database",
+     "工业企业数据库",
+     "规模以上工业企业",
+     "规上工业企业",
+     "chinese industrial enterprise",
+     "china industrial enterprise"
+    ],
+    "exclude": [
+     "yearbook",
+     "年鉴",
+     "statistical",
+     "tabulation",
+     "quarterly survey",
+     "汇总"
+    ]
+   },
+   "versions": {
+    "kind": "unversioned",
+    "note": "官方页面没写微观数据实验室开放哪些年份；论文常用 1998–2007 / 1998–2013 年版"
+   },
+   "channel": "apply_onsite_restricted",
+   "channel_label": "国家统计局微观数据实验室：机构须先登记进白名单（中央部委所属科研机构、“双一流”高校、中科院等），研究人员申请获批后到实验室现场使用",
+   "entry_template": "https://www.stats.gov.cn/zt_18555/zthd/lhfw/2022/rdwt/202302/t20230214_1903570.html",
+   "next_step": "先核对论文用的是哪套数据（工业企业数据库 1998–2007 / 2008 年后、工业企业效益数据库等）和年份；所在学校若属“双一流”，问科研处或图书馆是否已在统计局微观数据白名单；否则截至核实日，未找到面向个人或其他机构的公开获取入口",
+   "evidence": [
+    {
+     "url": "https://www.stats.gov.cn/zt_18555/zthd/lhfw/2022/rdwt/202302/t20230214_1903571.html",
+     "checked": "2026-11-18",
+     "quote": "开放对象暂定为中央部委及其下属科研机构、“双一流”建设高校及国务院直属中国社会科学院、中国科学院、中国工程院等科研机构 … (一)规模以上工业企业财务状况年度调查微观数据（页面日期 2021-02-19，写明处于试运行阶段）"
+    },
+    {
+     "url": "https://www.stats.gov.cn/zt_18555/zthd/lhfw/2022/rdwt/202302/t20230214_1903570.html",
+     "checked": "2026-11-18",
+     "quote": "申请成功后联系实验室预约现场使用时间 …（国家统计局微观数据实验室；国家统计局—清华大学数据开发中心）"
+    }
+   ],
+   "not_for": "《中国工业统计年鉴》等汇总资料；经济普查微观数据；学校或数据商转售的版本（非官方渠道，未核实）",
+   "still_check": "论文用的是哪套数据、哪些年份；实验室开放哪些年份（官方页面未写）；所在学校是否在白名单；只能现场使用。截至核实日，未找到该版本的公开获取入口",
+   "verified_by": "Claude（网页搜索 2026-11-18；官方页面为 2021 年问答），待本人复核",
+   "identity": {
+    "generic_names": [
+     "industrial enterprise database",
+     "industrial enterprises database",
+     "industrial firms database",
+     "industrial firm database",
+     "annual survey of industrial",
+     "asie",
+     "industry business performance database"
+    ],
+    "evidence_any": [
+     "china",
+     "chinese",
+     "prc",
+     "中国",
+     "全国",
+     "national bureau of statistics",
+     "nbs",
+     "国家统计局",
+     "above designated size",
+     "规模以上"
+    ]
+   },
+   "executable": false,
+   "access": {
+    "restriction": "application_onsite",
+    "label": "机构须在统计局白名单（部委科研机构、“双一流”高校、中科院等），研究人员申请获批后到实验室现场使用",
+    "whole_product": false
+   },
+   "ja": {
+    "product": "中国工業企業データベース（国家統計局 規模以上工業企業調査のミクロデータ）",
+    "access": "機関が統計局のホワイトリスト（中央省庁系研究機関、「双一流」大学、中国科学院など）に登録され、研究者が申請・承認を経てラボで現地利用",
+    "next_step": "論文がどのデータセット・どの年を使ったか確認し、所属大学がホワイトリストに入っているか研究支援部門や図書館に問い合わせる",
+    "still_check": "ラボが論文の年を提供しているか（公式ページに記載なし）。確認日時点で、この版の公開入手経路は見つかっていない"
+   }
+  }
+ ],
+ "leads": [
+  {
+   "id": "LEAD-NBS",
+   "when": "只认出提供方是国家统计局（数据名就是“统计局数据”，或提供方第一个写的是国家统计局），没有认出具体出版物或数据库",
+   "match": {
+    "provider_or_name": [
+     "national bureau of statistics",
+     "国家统计局",
+     "nbs"
+    ],
+    "unless_product_matched": true
+   },
+   "entries": [
+    "国家统计局官网 https://www.stats.gov.cn/（按论文写的数据名在站内搜索）"
+   ],
+   "still_check": "论文用的是哪种出版物、数据库还是微观数据，以及哪一年；同一机构的年鉴可在线查表，微观数据要另外申请，不能套用",
+   "ja": {
+    "when": "提供機関が国家統計局であることだけが分かった",
+    "next_step": "統計局サイトで論文のデータ名を検索し、年鑑・データベース・ミクロデータのどれかを確認する"
+   }
+  },
+  {
+   "id": "LEAD-PROV-YB",
+   "when": "省、市统计年鉴或“各地统计局网站”（数据系列，没有指明哪一本）",
+   "match": {
+    "name_regex": "statistical yearbooks|provincial statistical yearbook|各省.*年鉴|省市统计年鉴|地方统计年鉴|statistics bureaus? websites?|website of (the )?statistics bureau"
+   },
+   "entries": [
+    "各省统计局网站的年鉴栏目（每个省不同）",
+    "图书馆或 CNKI 年鉴库（机构订阅）"
+   ],
+   "still_check": "具体是哪些省 / 市、哪几年版本；各省的在线情况不同",
+   "ja": {
+    "when": "省・市の統計年鑑（どの年鑑か未特定）",
+    "next_step": "どの省・市・年版か確認する。各省統計局サイトの年鑑欄、図書館や CNKI 年鑑データベースを使う"
+   }
+  }
+ ]
+}

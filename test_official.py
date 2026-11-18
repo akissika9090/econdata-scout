@@ -59,7 +59,7 @@ R_TEXT = ("Restricted-Use Vital Statistics Data. Since 2005, national vital stat
 P_URL = "https://www.cdc.gov/nchs/data_access/vitalstatsonline.htm"
 P_TEXT = "Vital Statistics Online. Public-use mortality data files can be downloaded free of charge. National Vital Statistics System."
 BLOG = "https://some-data-blog.com/nvss-guide"
-BLOG_TEXT = "A guide to NVSS data. The restricted data files are available to researchers. National Vital Statistics System."
+BLOG_TEXT = "A guide to NVSS data. Researchers can apply for the restricted data files through NCHS. National Vital Statistics System."   # v2.5d：原文要写明获取方式
 PAGES = {R_URL: ("Restricted-Use Vital Statistics Data", R_TEXT, [("Application form", "https://apply.example.org/nchs")]),
          P_URL: ("Vital Statistics Online", P_TEXT, []),
          BLOG: ("NVSS guide", BLOG_TEXT, []),
@@ -93,7 +93,7 @@ check("1. 核对通过的域名自动记下（cdc.gov）", any(d["domain"] == "c
 web, learned = make_web(PAGES), {"domains": []}
 res = oc.run_check(NVSS, web, learned, max_steps=2, ask=fake_model([
     {"thought": "", "action": "read_page", "url": BLOG},
-    submit(BLOG, aq="The restricted data files are available to researchers.", vq="The restricted data files are available to researchers.")]))
+    submit(BLOG, aq="Researchers can apply for the restricted data files through NCHS.", vq="Researchers can apply for the restricted data files through NCHS.")]))
 f2 = res.get("finding") or {}
 check("2. 博客页面（非机构域名）点名了数据 → v2.5 起只作为分发方接受：标 distributor，不算官方、不记入已核实官方域名",
       res["outcome"] == "found" and f2.get("evidence_source") == "distributor" and f2["official_basis"].startswith("distributor")
@@ -494,10 +494,11 @@ check("19. run_check 遇到 ParseError → outcome parse_error，保留原始响
 WWO = {"name": "meteorological conditions (3-hourly)", "provider": "worldweatheronline.com", "version": None,
        "version_verified": None, "sample_period": None, "urls": ["www.worldweatheronline.com"], "access_category": "unknown"}
 W_URL = "https://www.worldweatheronline.com/weather-api/api/historical-weather-api.aspx"
-W_TEXT = "Historical Weather API. Our historical or past weather API allows users to receive weather data from 1st July 2008 until present day."
+W_TEXT = ("Historical Weather API. Our historical or past weather API allows users to receive weather data from 1st July 2008 until present day. "
+          "Historical data requires a paid subscription plan.")   # v2.5d：订阅结论要有写明订阅的原文
 w = {"thought": "", "action": "submit_finding", "url": W_URL, "channel": "subscription", "eligibility": "individuals",
      "restrictions": [], "check_result": "other_version_only",
-     "access_quote": "Our historical or past weather API allows users to receive weather data from 1st July 2008 until present day.",
+     "access_quote": "Historical data requires a paid subscription plan.",
      "version_quote": None, "provider_quote": None}
 res = oc.run_check(WWO, make_web({W_URL: ("Historical Weather API", W_TEXT, [])}), {"domains": []}, ask=fake_model([w]))
 check("19. 论文写明提供方是 worldweatheronline.com → 该网站算提供方官网", res["outcome"] == "found"
@@ -765,6 +766,90 @@ check("25. 没结论 → 列出被拒的提交（附原因）和读过的页面�
       and "data.example.org/a (read during the check)" in leads25[2], leads25)
 check("25. 什么页面都没到过 → 提示自己按数据名和提供方搜索",
       "search the data name and the provider yourself" in step3.unanswered_leads({"outcome": "not_found"})[0])
+
+# ---- 26. v2.5d 获取依据门槛：获取原文要写明获取方式，否则不能给出下载 / 申请 / 购买 / 订阅结论 ----
+no_way = [("public_download", "本表是2010年第六次全国人口普查初步汇总的11月1日零时数。"),
+          ("public_download", "自2015年1月1日起，向社会公开发布全国338个地级及以上城市空气质量实时监测数据。"),
+          ("registration_download", "If you have a question, please read \"MERRA-2 File Specification Document\" and FAQs linked from the Documentation tab on this page."),
+          ("public_download", "TRAINS tariff and trade data are disseminated through the World Integrated Trade Solution WITS application."),
+          ("subscription", "Prowess is a service that delivers the largest database of the performance of Indian companies along with a powerful querying interface.")]
+stated = [("registration_download", "登录的用户，在列表页点击“下载”按钮，可以实现裁判文书下载。"),
+          ("registration_download", "如您需要相关气象数据，请登录中国气象数据网（data.cma.cn）注册获取。"),
+          ("public_download", "Download all tables ZIP"),
+          ("public_download", "The Quarterly Workforce Indicators (QWI) are available online for public use."),
+          ("apply_to_provider", "各地可依据实际需求申请下载月报数据。"),
+          ("apply_to_provider", "Access to restricted files requires research proposal review and approval by NCHS."),
+          ("apply_to_provider", oc.CN_LIBRARY["access_quote"]),
+          ("purchase", "您可在各大书店和中国统计资料馆中查阅纸质版本。"),
+          ("purchase", "The Survey of Household Spending: Public Use Microdata File, 2006 (62M0004XCB, $3,210) is now available."),
+          ("subscription", "注册CSMAR个人账号，即可享有和学校图书馆相同的数据权限。")]
+check("26. 依据句没写获取方式（年鉴人口表、实时发布、“有问题请看文档”、只说经 WITS 发布、只介绍服务）→ 不算有依据",
+      not any(oc.access_stated(c, q) for c, q in no_way), [q for c, q in no_way if oc.access_stated(c, q)])
+check("26. 写明了下载、注册获取、在线公开、申请 / 审批、到馆查阅、书店 / 标价、机构订阅权限 → 算有依据",
+      all(oc.access_stated(c, q) for c, q in stated), [q for c, q in stated if not oc.access_stated(c, q)])
+check("26. 渠道和措辞要对应：写了“下载”不能当作“购买”的依据", not oc.access_stated("purchase", "Download all tables ZIP"))
+G_URL = "https://www.stats.gov.cn/sj/ndsj/2011/html/D0309C.HTM"
+G_TEXT = "国家统计局。第六次全国人口普查。本表是2010年第六次全国人口普查初步汇总的11月1日零时数。"
+CEN = {"name": "China Census 2010", "provider": "国家统计局", "version": None, "version_verified": None,
+       "sample_period": "2010", "urls": [], "access_category": "unknown"}
+g = {"thought": "", "action": "submit_finding", "url": G_URL, "channel": "public_download", "eligibility": "not_stated",
+     "restrictions": [], "check_result": "same_version_found", "access_quote": "本表是2010年第六次全国人口普查初步汇总的11月1日零时数。",
+     "version_quote": "本表是2010年第六次全国人口普查初步汇总的11月1日零时数。", "provider_quote": "国家统计局"}
+res26 = oc.run_check(CEN, make_web({G_URL: ("2010 census table", G_TEXT, [])}), {"domains": [{"domain": "stats.gov.cn", "label": "China Census 2010 | 国家统计局"}]},
+                     max_steps=1, ask=fake_model([g]))
+check("26. 实时运行：人口普查年鉴表交“公开下载” → 退回，没有结论",
+      res26["outcome"] != "found" and res26["steps"][0]["observation"].startswith(oc.ACCESS_NOT_STATED), res26.get("steps"))
+leads26 = step3.unanswered_leads(res26)
+check("26. 报告线索：保留这个页面，写给用户的下一步（不显示写给模型的 give_up 提示）",
+      any(G_URL in l and "does not say how to obtain the data" in l and "give_up" not in l for l in leads26), leads26)
+saved = {"outcome": "found", "steps": [], "finding": {"url": G_URL, "channel": "public_download", "access_quote": g["access_quote"]}}
+re26 = oc.apply_access_gate(saved)
+check("26. 离线复核保存的结果：同样降级为没有结论，原结论另存，页面作为线索",
+      re26["outcome"] == "not_found" and re26["finding"] is None and re26["regated_finding"]["url"] == G_URL
+      and any(G_URL in l for l in step3.unanswered_leads(re26)))
+ok_saved = {"outcome": "found", "steps": [], "finding": {"url": "https://x", "channel": "public_download", "access_quote": "Download all tables ZIP"}}
+check("26. 有依据的保存结果不动", oc.apply_access_gate(ok_saved) is ok_saved)
+
+# ---- 27. 一条核查出错不能拖垮整批（2026-11-18 新论文端到端：parse_error 让 summary_line 抛 KeyError，整批 not checked）----
+Q_W = "Pollution readings come from the Global Weather Archive for 2010–2015."
+pages27 = [f"Data. {Q_N} {Q_C} {Q_W} End."]
+raw27 = copy.deepcopy(raw16)
+raw27["data_sources"].append({"name": "Global Weather Archive", "role": "main", "kind": "dataset", "provider": None, "unit": None,
+     "sample_period": "2010–2015", "period_evidence": {"quote": Q_W, "page": 1}, "access_category": "unknown",
+     "source_evidence": {"quote": Q_W, "page": 1}, "access_evidence": None, "usage": "analyzed",
+     "usage_evidence": {"quote": Q_W, "page": 1}})
+rep27 = step2.verify_result(pages27, raw27)
+merged27 = step3.merge_reports([("borg", rep27)])
+def run27(src, web, learned, ask=None, verbose=False, **kw):
+    if "Vital" in src["name"]:
+        raise ConnectionResetError("Connection reset by peer")       # 第一条直接抛错
+    if "Labor" in src["name"]:
+        return {"outcome": "parse_error", "steps": [], "read": {}, "leads": {}}   # 第二条：模型回答两次都不是 JSON
+    return {"outcome": "not_found", "steps": [], "read": {}, "leads": {}}         # 第三条正常跑完
+real_run_check, oc.run_check = oc.run_check, run27
+import io, contextlib
+try:
+    with contextlib.redirect_stdout(io.StringIO()) as out27:
+        official27 = oc.check_merged(merged27, web, {"domains": []}, verbose=True, learned_path=None)   # scout 用 verbose=True
+    batch_ok = True
+except Exception as e:
+    official27, batch_ok = {}, f"{type(e).__name__}: {e}"
+finally:
+    oc.run_check = real_run_check
+outcomes27 = {v["name"]: v["result"]["outcome"] for v in official27.values()}
+check("27. 第一条抛错、第二条 parse_error（verbose=True）→ 整批不放弃，三条都有结果", batch_ok is True and len(official27) == 3, (batch_ok, outcomes27))
+check("27. 出错那条记为 check_failed 并保留错误信息；其余两条保留各自结果",
+      sorted(outcomes27.values()) == ["check_failed", "not_found", "parse_error"]
+      and any("ConnectionResetError" in v["result"].get("error", "") for v in official27.values()), outcomes27)
+text27 = step3.report_markdown([("borg", rep27)], official=official27)
+sec = lambda name: text27.split(f"## {name}", 1)[1].split("\n## ", 1)[0]
+check("27. 报告：出错那条明确写“核查失败”和错误，不写成 not checked / 没找到",
+      "official-site check failed (ConnectionResetError" in sec("National Vital Statistics System")
+      and "not checked" not in sec("National Vital Statistics System"), sec("National Vital Statistics System"))
+check("27. 报告：parse_error 那条也写“核查失败”；正常那条照常显示自己的结论",
+      "official-site check failed" in sec("China Labor-force Dynamics Survey")
+      and "no verified official access route found" in sec("Global Weather Archive"), text27[:3000])
+check("27. 报告前面的 Main data 一行也写出核查失败", text27.count("check this yourself") >= 2, text27[:2500])
 
 print("\n全部通过" if failures == 0 else f"\n{failures} 项失败")
 raise SystemExit(1 if failures else 0)

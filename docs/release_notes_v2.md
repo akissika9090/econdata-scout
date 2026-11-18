@@ -1,6 +1,6 @@
 # EconData Scout V2 — release notes (release candidate)
 
-Date: 2026-11-17 · Rules version: v2.5b · Status: **release candidate, not yet published**; personal portfolio project, not a production tool.
+Date: 2026-11-18 · Rules version: v2.5d · Status: **release candidate, not yet published**; personal portfolio project, not a production tool.
 
 EconData Scout is a citation-backed data-provenance tool: it reports which data prior papers used and what their text says, with the quote and page. V2 adds optional source and access leads from provider websites.
 
@@ -45,7 +45,7 @@ Independent tests: three new research directions, each scored on its **first run
 - Not every miss comes with a lead. When the official-site check runs and finds nothing, the report says "please check this yourself" and lists the pages reached. The 4 sources missed at the extraction step never reached the official-site check, so the report gives no lead for them.
 - **Big public providers are answered well**: US federal statistics (BEA, EIA, BLS), World Bank, UNCTAD, university data projects, and commercial databases whose site names the product (CMIE Prowess).
 - "Where from" is scored by website domain. In round 5, "World Bank income classification" was answered with the World Bank's WDI catalogue page: right provider, not the exact product, hence 6 / 17 by exact product.
-- Each round ran under the rule version current at the time (v2.4c, v2.4d, v2.5a), so the total mixes three versions. v2.5b has not had an independent round.
+- Each round ran under the rule version current at the time (v2.4c, v2.4d, v2.5a), so the total mixes three versions. v2.5b–v2.5d have not had an independent round; under v2.5d the table above would read 5 / 13 and 5 / 17 (see below).
 - In round 5, four sources (two Tunisian institute databases, a firm survey, "IMF tariff data") could not be confirmed by hand either; they are left out of question 1 and kept in question 2.
 - Rounds 1–2 used an older scoring scheme (channel, eligibility, version) and are not included. Details: [evaluation.md](evaluation.md).
 
@@ -73,7 +73,10 @@ The v2.5–v2.5b fixes were checked by replaying saved model answers and saved p
 - **"Please check this yourself" with leads** (v2.5): when the check finds no answer, the report lists the pages submitted but not accepted (with the reason) and the pages read.
 - **Distributor sites** (v2.5a): see above.
 - **Sources tables** (v2.5b): a short table-cell entry under a table that mentions sources counts as a data source, not a variable.
+- **Curly and straight quotes** (v2.5c): quote verification treats ’ and ', “ ” and " as the same character. A model often types China's where the PDF has China’s; before, such a quote failed and the data source was dropped (found in the V2 demo: Chang et al.'s main data). Offline check: the recall baseline (18 papers, 80 sources) is unchanged at 73/80; of 349 saved quotes in 41 saved results, 5 changed from failing to passing, all from that paper and all present in the PDF.
 - **Uploaded PDFs matched to search results** (2026-11-18, `scout.py` only; check rules unchanged): a PDF passed with `--pdf` is matched to the paper it belongs to by DOI or full title on its first two pages, keeps that paper's name, and is no longer listed as "not analysed"; a second copy of a paper already read is skipped.
+- **Access quote must state how to get the data** (v2.5d): a download, application, purchase or subscription answer is accepted only if the quoted page sentence states that way of access (download / online public use / register; apply / approval / consult on site; buy / bookshop / price; subscribe / licence / institutional access rights). Otherwise the check is sent back, and if nothing better is found the page is kept as a lead with the next step. Offline re-check of the saved results: of 21 findings in the demo and rounds 3–5, 6 are now leads (2010 census yearbook table, real-time air-quality release, MERRA-2 ×2, UNCTAD TRAINS, CMIE Prowess) and 15 are unchanged. TRAINS and Prowess had the right channel but quoted sentences that do not state it, so the two-question totals fall from 7 / 13 and 7 / 17 to 5 / 13 and 5 / 17, still with 0 wrong answers.
+- **Main data by paper** (2026-11-18, report layout only; check rules unchanged): the report opens with each paper's main data (the model's role judgment) with the checked source sentence and page and a one-line official-site status. Candidates the model marked as main data whose evidence failed a check are shown under "To verify" with what is missing and where to look, instead of only at the end of the report; they are still not counted as used. On the 18-paper recall baseline, 54 of 65 main-text sources appear in the main-data list, 1 under To verify, 7 by name under "other data used" (the model judged them robustness or supplementary), and 2 do not appear (the model did not list them).
 - **V2 demo** (`python demo/replay.py official`): saved report of a real run on air pollution and labour productivity in China, with the errors found by hand listed in demo/README.md.
 - **Two-question scoring**: the test rounds were scored with an internal script that is not part of the public package.
 

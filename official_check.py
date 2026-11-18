@@ -290,6 +290,47 @@ def official_status(url: str, page: dict, src: dict, learned: dict, linked_from_
 
 UNREADABLE = "Rejected: the program could not read the page"
 
+# v2.5d（2026-11-18）获取依据门槛：获取原文必须写明对应的获取方式，否则不能给出下载 / 申请 / 购买 / 订阅结论。
+# 以前程序只核对原文在页面上存在：“本表是2010年第六次全国人口普查初步汇总的……”“向社会公开发布实时监测数据”
+# “If you have a question, please read …” 都被当成了下载依据。只看获取原文这一句，不看页面其他地方。
+_DOWNLOAD = (r"download|下载|获取|导出|浏览|查询|查看|在线|免费|\bexport|\bzip\b|\bcsv\b|\bxlsx?\b|\bftp\b|index of /"
+             r"|\bfiles? (?:are|is) (?:on|available)|available (?:for|to) (?:download|the public)|\bonline\b|public use|\bfree\b"
+             r"|\bbrowse|\bview\b|\bquery|\bretriev|\baccess(?:ing)? (?:\w+ ){0,2}(?:data|dataset|files?|tables?)\b")
+ACCESS_WORDS = {
+    "public_download": _DOWNLOAD,
+    "registration_download": _DOWNLOAD + r"|注册|登录|\bregist|sign[- ]?up|log ?in",
+    "apply_to_provider": (r"appl(?:y|ies|ied|ication)|request|申请|审核|审批|提交|填写|许可|授权|submit|\bform\b|approv|proposal"
+                          r"|permission|查阅|阅览|on[- ]site|reading room"),   # 到馆查阅也是向提供方获取
+    "purchase": r"purchas|\bbuy|\border|price|购买|订购|征订|下单|售价|定价|书店|bookstore|\d\s*元|[$€£]\s?\d",
+    "subscription": r"subscri|licen[cs]|订阅|订购|会员|开通|权限|access rights",   # “享有和学校相同的数据权限”＝机构订阅
+    "request_from_author": r"author|contact|request|联系|索取",
+}
+ACCESS_NOT_STATED = "Rejected: the access quote does not say how to obtain the data"
+
+
+def access_stated(channel: str, quote: str) -> bool:
+    """获取原文是否写明了这个渠道的获取方式（下载、申请、购买、订阅、向作者索取）。只做字面检查：
+    写了不代表渠道判断一定对（那仍是模型对原文的判断），没写则一定不能下这个结论。"""
+    pattern = ACCESS_WORDS.get(channel)
+    return bool(pattern and re.search(pattern, normalize(quote or ""), re.I))
+
+
+def access_gate_message(channel: str) -> str:
+    return (f"{ACCESS_NOT_STATED} — the quoted sentence has no {channel.replace('_', ' ')} wording; the page is a lead only: "
+            f"find the page on this site that states how to download or apply, or give_up")
+
+
+def apply_access_gate(result: dict) -> dict:
+    """离线复核保存的结果用（不调用 API）：found 结论的获取原文没写获取方式 → 改为没有结论，页面作为附原因的线索保留。
+    实时运行时同一检查在 verify_finding 里，模型会被退回、可以换页面再交；离线复核无法知道它会不会找到更好的页面。"""
+    f = result.get("finding") if result.get("outcome") == "found" else None
+    if not f or access_stated(f["channel"], f.get("access_quote") or ""):
+        return result
+    step = {"step": len(result.get("steps") or []) + 1, "action": "submit_finding", "args": {"url": f["url"]},
+            "observation": access_gate_message(f["channel"]), "offline_regate": "v2.5d"}
+    return {**result, "outcome": "not_found", "finding": None, "regated_finding": f,
+            "steps": list(result.get("steps") or []) + [step]}
+
 # ============ 产品与时效：只找到其他产品，或只找到发布当时的公告 ============
 MONTHS = {m: i for i, m in enumerate(["january", "february", "march", "april", "may", "june", "july", "august", "september",
                                        "october", "november", "december"], 1)}
@@ -480,6 +521,8 @@ def verify_finding(web: Web, src: dict, decision: dict, learned: dict, linked_fr
     aq = decision.get("access_quote") or ""
     if not quote_in_text(aq, page["text"]):
         return False, "Rejected: the access_quote was not found word-for-word on that page. Copy it exactly from read_page.", None
+    if not access_stated(channel, aq):
+        return False, access_gate_message(channel) + ".", None
     notes, pending, cond_note = [], [], None
     if channel in FREE_CHANNELS and GENERIC_FREE.search(aq) and not payment_cues(page["text"]):
         ev = (decision.get("scope_evidence") or "").strip()
@@ -821,7 +864,10 @@ def check_merged(merged: list[dict], web: Web, learned: dict, ask=ask_model, ver
         src = source_for_merged(m)
         if verbose:
             print(f"  [{i}/{len(merged)}] {m['display']}", flush=True)
-        res = mark_manual(run_check(src, web, learned, ask=ask, verbose=verbose))
+        try:
+            res = mark_manual(run_check(src, web, learned, ask=ask, verbose=verbose))
+        except Exception as e:   # 2026-11-18：一条出错只记这一条（以前会让整批官网核查放弃，报告全部 not checked）
+            res = {"outcome": "check_failed", "error": f"{type(e).__name__}: {str(e)[:300]}", "steps": [], "read": {}, "leads": {}}
         out[m["key"]] = {"name": m["display"],
                          "checked_source": {k: src.get(k) for k in ("name", "provider", "version", "sample_period", "urls", "study_area")},
                          "result": res}
@@ -862,7 +908,9 @@ def summary_line(src: dict, result: dict) -> str:
         return f"{src.get('name')}: official entry found but the page could not be read — please check manually: {urls}"
     if result["outcome"] != "found":
         why = {"not_found": "no official access route found", "budget_exhausted": "step budget used up before a verified finding",
-               "agent_error": "model call failed"}[result["outcome"]]
+               "agent_error": "model call failed", "parse_error": "the model's answer could not be read (invalid JSON twice)",
+               "check_failed": f"the check failed ({result.get('error', 'unknown error')})"}.get(
+                   result["outcome"], f"no result ({result['outcome']})")   # 不认识的结果也只影响这一行（以前 parse_error 会抛 KeyError）
         return f"{src.get('name')}: official check — {why}"
     f = result["finding"]
     parts = [f["channel"], f["eligibility"]] + [f"restriction: {r}" for r in f["restrictions"]] + [f["check_result"]]

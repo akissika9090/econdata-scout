@@ -414,7 +414,10 @@ VIA_LABELS = {"paper": "URL in the paper", "learned": "previously verified offic
               "link": "linked from an official page", "model": "proposed by the model",
               "known_channel": "known channel (China Statistical Data Library)"}
 NOT_FOUND_LABELS = {"not_found": "no verified official access route found", "budget_exhausted": "no verified official access route "
-                    "found within the step budget", "agent_error": "the check could not run (model call failed)"}
+                    "found within the step budget", "agent_error": "the check could not run (model call failed)",
+                    "parse_error": "official-site check failed: the model's answer could not be read",
+                    "check_failed": "official-site check failed"}
+CHECK_FAILED = ("agent_error", "parse_error", "check_failed")   # 核查本身没跑完：不是“没找到”，要说清楚
 
 
 def unanswered_leads(res: dict, limit: int = 5) -> list[str]:
@@ -424,7 +427,11 @@ def unanswered_leads(res: dict, limit: int = 5) -> list[str]:
     for s in res.get("steps") or []:
         url = (s.get("args") or {}).get("url")
         obs = s.get("observation") or ""
-        if s.get("action") == "submit_finding" and url and obs.startswith("Rejected"):
+        if s.get("action") == "submit_finding" and url and obs.startswith("Rejected: the access quote does not say how"):
+            # v2.5d 获取依据门槛：页面找到了，但交上来的那句原文没写怎么获取 → 给用户的下一步，不显示写给模型的提示
+            leads.setdefault(url, "page found, but the quoted sentence does not say how to obtain the data — open it and "
+                                  "look for a download or application page for the data the paper used")
+        elif s.get("action") == "submit_finding" and url and obs.startswith("Rejected"):
             why = obs.split("—", 1)[-1].strip()
             why = why if len(why) <= 160 else why[:160].rsplit(" ", 1)[0] + " …"
             leads.setdefault(url, "submitted by the check but not confirmed: " + why)
@@ -495,6 +502,8 @@ def comparison_block(m: dict, entry: dict | None) -> list[str]:
         head = "Official site now"
         official = {k: "—" for k in paper}
         official["channel"] = NOT_FOUND_LABELS.get(res.get("outcome"), "not checked") if entry else "not checked"
+        if entry and res.get("outcome") in CHECK_FAILED and res.get("error"):
+            official["channel"] += f" ({res['error'][:120]})"
         if entry:
             official["channel"] += " — please check this yourself"
             extra += unanswered_leads(res)
@@ -640,11 +649,119 @@ def _access_line(paper: str, s: dict) -> str:
     return line
 
 
+ROLE_LABELS = {"robustness": "robustness check", "supplementary": "supplementary analysis", "main": "main", "control": "control variables"}
+
+
+MAIN_INTRO = ("For each paper: the data the authors analysed as their main data (the model's role judgment), with the source "
+              "sentence and page checked in the PDF, and where the official-site check got to. Main-data candidates whose evidence "
+              "did not pass the checks are listed under **To verify**, with what is missing and where to look. Only data sources "
+              "and access routes are checked; details for each data source are in the summary below. Data used only for "
+              "control variables are listed separately as auxiliary data; data that also feed the main analysis stay under main "
+              "data with a note.")
+
+
+def official_short(entry: dict | None) -> str:
+    """主要数据一览里的一行官网状态（详细内容在下面的两栏对照里）。"""
+    if entry is None:
+        return ""
+    res = entry.get("result") or {}
+    f = res.get("finding")
+    if f:
+        from urllib.parse import urlparse
+        host = urlparse(f.get("final_url") or f.get("url") or "").hostname or ""
+        text = f"{CHANNEL_LABELS.get(f['channel'], f['channel'])} ({host}"
+        text += ", distributor)" if f.get("evidence_source") == "distributor" else ")"
+        pend = f.get("pending") or []
+        if "product" in pend:
+            text += "; the page is for another version or product — pending"
+        elif "version" in pend:
+            text += "; years / version used by the paper not named on the page — pending"
+        if pend and set(pend) - {"product", "version"}:
+            text += "; other conditions pending"
+        return text
+    if res.get("outcome") == "manual_check":
+        return "official page found but could not be read — check manually"
+    if res.get("outcome") in CHECK_FAILED:
+        return f"{NOT_FOUND_LABELS[res['outcome']]}" + (f" ({res['error'][:120]})" if res.get("error") else "") + " — check this yourself"
+    return "no verified access route found — leads in the summary below"
+
+
+def missing_evidence(src: dict) -> tuple[str, str]:
+    """待核对的主要数据候选：缺什么证据、下一步看哪里。只描述程序核对到哪一步没通过，不断言论文怎么写，
+    也不推断这条数据是不是本文的主数据。"""
+    sev, uev = src.get("source_evidence") or {}, src.get("usage_evidence") or {}
+    page = lambda ev: f" (the model pointed to p. {ev['page']})" if isinstance(ev.get("page"), int) else ""
+    reason = src.get("mention_reason")
+    if reason == "source_unverified":
+        return (f"the sentence naming where the data come from was not found in the PDF{page(sev)}",
+                "open that page and the data section; check whether the paper names the source of these data")
+    if reason == "possible_variable":
+        return ("the program found no source wording (such as \"from\", \"provided by\", \"source:\") in the quoted sentence, "
+                "so it cannot tell a dataset from a variable or indicator",
+                "read the quoted sentence and the table notes; if they name a provider, treat this as a data source")
+    if reason == "unspecified":
+        return ("the paper uses a general phrase without a specific data name", "check the data section for the specific dataset")
+    if src.get("usage") == "unclear":
+        return ("the model could not tell whether this paper analyses these data or only mentions them",
+                "read the data / empirical section around the quoted sentence")
+    return (f"the sentence showing that this paper analyses these data was not found in the PDF{page(uev)}",
+            "check that page, the data section and the tables for how the data are used")
+
+
+def main_data_markdown(reports: list[tuple[str, dict]], official: dict | None = None) -> str:
+    """报告开头：按论文列出主要数据（role = main，已进入“本文使用”）和证据不足的主要数据候选（待核对）。
+    只调整显示位置，不改变任何核对结果：待核对的候选仍不计入“本文使用”。"""
+    lines = ["# Main data by paper", "", MAIN_INTRO, ""]
+    for paper, rep in reports:
+        used = rep.get("data_sources", [])
+        no_role = used and not any("role" in s for s in used)   # 旧提示词没有 role 字段
+        main = used if no_role else [s for s in used if s.get("role") == "main"]
+        pending = [s for b in ("usage_pending", "other_mentions") for s in rep.get(b, []) if s.get("role") == "main"]
+        lines += [f"## {paper}", ""]
+        lines.append("**Main data (source text checked)**" + (" — older result without a role field: all data used are listed" if no_role else ""))
+        if not main:
+            lines.append("- none confirmed" + (" — see To verify" if pending else ""))
+        for s in main:
+            ev = s.get("source_evidence") or {}
+            quote = f" — p. {ev['page']}: “{ev['quote']}”" if ev.get("verified") else ""
+            also = " _(also provides control variables)_" if s.get("also_controls") else ""
+            lines.append(f"- **{s['name']}**{also}{quote}")
+            if official is not None:
+                lines.append(f"  - Official site now: {official_short(official.get(canonical_key(s)[0])) or 'not checked'}")
+        if pending:
+            lines += ["", "**⚠ To verify — main-data candidates with incomplete evidence** (not counted as used; the official-site check was not run for them)"]
+            for s in pending:
+                miss, nxt = missing_evidence(s)
+                ev = s.get("source_evidence") or {}
+                quote = f" — p. {ev['page']}: “{ev['quote']}”" if ev.get("verified") else ""
+                lines.append(f"- **{s['name']}**{quote}")
+                lines.append(f"  - Missing: {miss}")
+                lines.append(f"  - Next: {nxt}")
+        controls = [s for s in used if s not in main and s.get("role") == "control"]
+        if controls:
+            # 2026-11-18 本人定：只提供控制变量的数据放进辅助数据，附原文页码
+            lines += ["", "**Auxiliary data (control variables only)**"]
+            for s in controls:
+                ev = s.get("source_evidence") or {}
+                quote = f" — p. {ev['page']}: “{ev['quote']}”" if ev.get("verified") else ""
+                lines.append(f"- **{s['name']}**{quote}")
+        others = [s for s in used if s not in main and s.get("role") != "control"]
+        if others:
+            # 2026-11-18：按实际用途分组，附原文页码，用户可以自己判断模型的角色划分（以前只列名称）
+            lines += ["", "**Other data used** (the model judged these as robustness or supplementary; check the quote if you disagree)"]
+            for s in others:
+                ev = s.get("source_evidence") or {}
+                quote = f" — p. {ev['page']}: “{ev['quote']}”" if ev.get("verified") else ""
+                lines.append(f"- [{ROLE_LABELS.get(s.get('role'), 'role not stated')}] **{s['name']}**{quote}")
+        lines.append("")
+    return "\n".join(lines)
+
+
 def report_markdown(reports: list[tuple[str, dict]], only_shared: bool = False, official: dict | None = None) -> str:
     """从核对好的报告一次生成完整的 Markdown 报告（合并、论文级限制、其他提及、引用 / 待确认的数据）。
     step3 main 和 scout.py 都用这个函数，报告的组成只有一份。"""
     merged = merge_reports(reports)
-    return format_report(
+    return main_data_markdown(reports, official) + "\n" + format_report(
         merged, only_shared=only_shared,
         paper_limitations=paper_limitations(reports, merged, only_shared=only_shared),
         other_mentions=other_mentions(reports),

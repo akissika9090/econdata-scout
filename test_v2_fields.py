@@ -138,5 +138,21 @@ check("7. 旧结果没有新字段 → 版本为空、不显示版本和细分",
       x["version"] is None and x["version_verified"] is None
       and "Version / file used" not in sec and "Access details in the paper" not in sec, sec)
 
+# ---- 9. 弯引号 / 撇号（v2.5c，2026-11-18）：PDF 存 ’ “ ”、模型抄成 ' " 时仍算同一句；改了字的仍不通过 ----
+import step1_pdf_evidence as step1
+CURLY = "Our data on worker productivity come from Acme International, China\u2019s largest travel agency, and we call it \u201ctimeclock\u201d data."
+STRAIGHT = "Our data on worker productivity come from Acme International, China's largest travel agency, and we call it \"timeclock\" data."
+check("9a. 原文弯引号、引文直引号 → 严格核对和宽松核对都通过",
+      step1.verify_quote([CURLY], STRAIGHT, 1) and step1.verify_quote_tolerant([CURLY], STRAIGHT, 1))
+check("9b. 反过来（原文直引号、引文弯引号）也通过", step1.verify_quote([STRAIGHT], CURLY, 1))
+check("9c. 只是引号相同、改了一个词 → 仍不通过",
+      not step1.verify_quote([CURLY], STRAIGHT.replace("largest", "smallest"), 1))
+check("9d. 撇号不能被省略：原文 China’s、引文 Chinas → 不通过", not step1.verify_quote([CURLY], STRAIGHT.replace("China's", "Chinas"), 1))
+text, rep = run([f"Data. {CURLY} End."], [source("Acme worker productivity data", STRAIGHT)])
+used9 = [d["name"] for d in rep["data_sources"]]
+other9 = [d["name"] for d in rep["other_mentions"]]
+check("9e. 端到端：来源引文只差撇号写法 → 进入“本文使用”，不再移到其他提及",
+      used9 == ["Acme worker productivity data"] and not other9, (used9, other9))
+
 print("\n全部通过" if failures == 0 else f"\n{failures} 项失败")
 raise SystemExit(1 if failures else 0)

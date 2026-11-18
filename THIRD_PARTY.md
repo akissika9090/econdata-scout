@@ -17,7 +17,7 @@ The program's output consists of short verbatim quotations from papers, each wit
 
 Checked sentence by sentence on 2026-11-18: every quotation of eight or more words in the released files was searched for in the local copies of the papers. 59 were found and are attributed above; for Liebman (1998) there is no local PDF, so its 9 quotations were checked against the saved extraction: 8 were verified against the PDF when that extraction was made, 1 was marked unverified at the time (model output, shown as unconfirmed). The remaining strings are synthetic test sentences or the program's own text.
 
-`demo/outputs/official.md` (added 2026-11-18): its 25 paper quotations were checked against local copies of the three papers above (all found; one is interrupted by a footnote in the PDF).
+`demo/outputs/official.md` (added 2026-11-18): its 33 paper quotations were checked against local copies of the three papers above (all found; one is interrupted by a footnote in the PDF; recounted after the v2.5c re-verification).
 
 ## Quotations from websites
 

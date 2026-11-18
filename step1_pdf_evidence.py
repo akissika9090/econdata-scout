@@ -43,12 +43,19 @@ ACCESS_KEYWORDS = [
 ]
 
 
+# 弯引号、撇号统一成直引号（v2.5c，2026-11-18）：PDF 常存成 ’ “ ”，模型常抄成 ' "。NFKC 不处理这几个字符，
+# 以前同一句话会因为 China’s / China's 核对不通过（Chang et al. 2019 的携程数据因此被挡）。
+QUOTE_MAP = str.maketrans({"\u2018": "'", "\u2019": "'", "\u201a": "'", "\u201b": "'", "\u2032": "'", "\u02bc": "'",
+                           "\u201c": '"', "\u201d": '"', "\u201e": '"', "\u201f": '"', "\u2033": '"'})
+
+
 def normalize(text: str) -> str:
     """统一格式，用于关键词匹配：
     - NFKC 把连字符号还原成普通字母（'ﬁ' → 'fi'）
+    - 弯引号、撇号统一成直引号（’ → '，“ ” → "）
     - 合并 PDF 换行造成的断词（如 'avail-\\nable'、'Com- mission'）
     - 压缩空白、转小写"""
-    text = unicodedata.normalize("NFKC", text)
+    text = unicodedata.normalize("NFKC", text).translate(QUOTE_MAP)
     text = text.replace("­", "")  # 软连字符
     text = re.sub(r"(\w)-\s*\n\s*(\w)", r"\1\2", text)
     text = re.sub(r"\s+", " ", text)

@@ -1,6 +1,5 @@
-<!-- Saved report of a real run on 2026-11-18 (rules v2.5b; LLM_PROVIDER=deepseek, deepseek-flash): `python scout.py "the effect of air pollution on labor productivity in China" --official --pdf ...`. OpenAlex selected 3 papers; Kahn (2020) downloaded automatically, Chang et al. and Chen & Zhang were refused by the publishers (HTTP 403) and downloaded by hand. The user also uploaded a second copy of Kahn (2020); at the time scout.py analysed it again as a separate paper. That duplicate was removed offline from the saved results (extraction and official-site findings unchanged, no API call); scout.py now skips such duplicates. Official-site findings reflect the pages on the date checked. See demo/README.md for known errors. -->
+<!-- Saved report of a real run on 2026-11-18 (LLM_PROVIDER=deepseek, deepseek-flash): `python scout.py "the effect of air pollution on labor productivity in China" --official --pdf ...`. OpenAlex selected 3 papers; Kahn (2020) downloaded automatically, Chang et al. and Chen & Zhang were refused by the publishers (HTTP 403) and downloaded by hand. The run used rules v2.5b. Offline changes to the saved results, no API call: (1) a second, hand-uploaded copy of Kahn (2020) that scout.py then analysed as a separate paper was removed (scout.py now skips such duplicates); (2) the saved model answers were re-verified with v2.5c (curly and straight quotes treated as equal), which brings back Chang et al.'s main data (Ctrip), for which the official-site check was not run ("not checked"); (3) the saved official-site findings were re-checked with v2.5d (the access quote must state how to obtain the data): the 2010 census and MERRA-2 findings did not, so they are shown as leads; in a live run the agent would have been sent back and might have found a better page; (4) the report uses the current layout (main data by paper first). Other official-site findings are those of the run and reflect the pages on the date checked. See demo/README.md for known errors. -->
 # EconData Scout report
-
 
 - Research direction: the effect of air pollution on labor productivity in China
 - Policy: air pollution  |  Outcome: labor productivity
@@ -15,6 +14,46 @@
   - full text: open access (OpenAlex); version: publishedVersion - OpenAlex metadata, not verified
 - **Chen2021** Impact of air pollution on labor productivity: Evidence from prison factory data (China Economic Quarterly International)
   - full text: uploaded by the user (automatic download had failed); version: uploaded by the user; version not checked
+
+# Main data by paper
+
+For each paper: the data the authors analysed as their main data (the model's role judgment), with the source sentence and page checked in the PDF, and where the official-site check got to. Main-data candidates whose evidence did not pass the checks are listed under **To verify**, with what is missing and where to look. Only data sources and access routes are checked; details for each data source are in the summary below.
+
+## Chang2016
+
+**Main data (source text checked)**
+- **Ctrip call center worker productivity data** — p. 5: “Our data on worker productivity come from Ctrip International, China's largest travel agency.”
+  - Official site now: not checked
+- **China National Environmental Monitoring Center (CNEMC) daily API data** — p. 6: “Our daily pollution data are obtained from the China National Environmental Monitoring Center (CNEMC), which is affiliated with the Ministry of Environmental Protection of China.”
+  - Official site now: official page found but could not be read — check manually
+
+Other data used (robustness / supplementary): Beijing API data
+
+## Kahn2020
+
+**Main data (source text checked)**
+- **Online transcripts of judicial decisions** — p. 4: “Our main data source is online transcripts of judicial decisions.11 These documents first became available online in late 2013 in a handful of courts, and cov- erage widened over time.”
+  - Official site now: free download after registration (wenshu.court.gov.cn); years / version used by the paper not named on the page — pending
+- **Air pollution data from China's Ministry of Environmental Protection (MEP)** — p. 4: “Air pollution data are published daily by the China’s Ministry of Environmental Protection (MEP).”
+  - Official site now: no verified access route found — leads in the summary below
+- **Weather data from China Meteorological Data Sharing Service System** — p. 4: “Weather data are collected from China Meteorological Data Sharing Service System (http://cdc.cma.gov.cn/).”
+  - Official site now: official page found but could not be read — check manually
+- **Baidu Index** — p. 4: “The Baidu Index used in this paper is a data product analogous to Google Trends.”
+  - Official site now: free download after registration (index.baidu.com, distributor); years / version used by the paper not named on the page — pending
+
+Other data used (robustness / supplementary): China Law Yearbook; China Census 2010
+
+## Chen2021
+
+**Main data (source text checked)**
+- **Prison factory labor administrative data (Shenzhen male prison)** — p. 4: “The labor data was draw from a male prison in Shenzhen, China in 2015, where thousands of inmate laborers were forced to work in its factory during incarceration period.”
+  - Official site now: no verified access route found — leads in the summary below
+- **API daily report in Shenzhen (National Environmental Monitoring Center of China)** — p. 4: “The air pollution data used in this study is taken from the API daily report in Shenzhen, released by the National Environmental Monitoring Center of China.”
+  - Official site now: official page found but could not be read — check manually
+- **MERRA-2 satellite images (NASA)** — p. 5: “The atmospheric inversion data comes from the MERRA-2 satellite images of NASA.”
+  - Official site now: no verified access route found — leads in the summary below
+- **Daily data set of surface weather data in China (V3.0), China Meteorological Data Service Center** — p. 6: “The meteorological data is taken from the daily monitoring of meteorological sites provided by the China Meteorological Data Service Center.”
+  - Official site now: no verified access route found — leads in the summary below
 
 # Data source summary (merged across papers)
 
@@ -179,6 +218,27 @@
     - Provider (extracted by the model; not an access channel): China National Environmental Monitoring Center (CNEMC), affiliated with the Ministry of Environmental Protection of China (this wording does not appear verbatim in the source sentence; compare with the source text above)
     - Access channel recorded in the paper: not recorded in the current extraction results (this does not mean the paper does not describe one)
 
+## Ctrip call center worker productivity data　(used by 1 paper)
+
+| | In the papers (what prior authors used) | Official site now |
+|---|---|---|
+| Access channel | no channel stated (access: not confirmed (initial AI judgment: restricted)) | not checked |
+| Eligibility | not stated | — |
+| Use restrictions | none stated | — |
+| Version | not stated | — |
+| Source | see per-paper evidence below | — |
+
+- **Access: not confirmed (initial AI judgment: restricted)** (basis: the quote has no clear expression supporting this category; see the source text)
+  - Paper evidence: restricted: 0 papers verified, 1 paper with only an initial AI judgment (not verified)
+- **Historical use record:** the paper makes no statement about narrowing the sample for data reasons (this does not mean the data are complete; check the variables, years, and regions you need)
+  - Sample years used by prior papers (that the period belongs to this data is a model judgment): 
+    - 2010–2012 (continuous range, period form unverified: the period quote does not connect the start and end years as a range, not counted in "latest year used"; Chang2016) — p. 5: “Our data span the period from January 1, 2010 to December 9, 2012, with different coverage periods for the two offices.”
+- Per paper:
+  - Chang2016: [unclear wording] Ctrip call center worker productivity data — p. 5 (needs manual review: initial AI judgment was restricted, but the quote has no clear expression supporting this category): “The difference in data coverage periods is due to a combination of pollution data availability and the time coverage of the productivity data provided by the firm.”
+    - Basis for "used in this paper" (the usage relation is a model judgment; source text located): p. 5: “Our analysis is focused on Ctrip's call center workers in Shanghai and Nantong who book travel for clients throughout China.”
+    - Provider (extracted by the model; not an access channel): Ctrip International (appears verbatim in the source sentence on p. 5)
+    - Access channel recorded in the paper: not recorded in the current extraction results (this does not mean the paper does not describe one)
+
 ## Daily data set of surface weather data in China , China Meteorological Data Service Center　(used by 1 paper)
 
 | | In the papers (what prior authors used) | Official site now |
@@ -210,20 +270,17 @@
 
 ## MERRA-2 (NASA)　(used by 1 paper)
 
-| | In the papers (what prior authors used) | Official site now (checked 2026-11-18) |
+| | In the papers (what prior authors used) | Official site now |
 |---|---|---|
-| Access channel | no channel stated (access: free download (some require an account)) | free download after registration — the page does not name the years / version the paper used; whether they are covered is pending |
-| Eligibility | not stated | researchers can apply |
-| Use restrictions | none stated | none stated on the page |
-| Version | not stated | not confirmed: the page does not name the years / volumes the paper used |
-| Source | see per-paper evidence below | https://disc.gsfc.nasa.gov/datasets/M2T1NXSLV_5.12.4/summary?keywords=MERRA2 — found via previously verified official domain |
+| Access channel | no channel stated (access: free download (some require an account)) | no verified official access route found — please check this yourself |
+| Eligibility | not stated | — |
+| Use restrictions | none stated | — |
+| Version | not stated | — |
+| Source | see per-paper evidence below | — |
 
-  - Official-site text (access): “If you have a question, please read "MERRA-2 File Specification Document", “MERRA-2 Data Access – Quick Start Guide”, and FAQs linked from the ”Documentation” tab on this page.”
-  - Official-site text (version): “The dataset covers the period of 1980-present with the latency of ~3 weeks after the end of a month.”
-  - Evidence comes from: the official page itself
-  - Why this counts as official: previously verified official domain (disc.gsfc.nasa.gov)
-  - Note: the paper used July 2004–August 2015, but the quoted page text does not name these years or this version — whether they are covered is pending
-  - Channel, eligibility and version correspondence are model judgments on the quoted official text.
+  - Leads from the check (not verified; open them and judge yourself):
+    - https://disc.gsfc.nasa.gov/datasets/M2T1NXSLV_5.12.4/summary?keywords=MERRA2 (page found, but the quoted sentence does not say how to obtain the data — open it and look for a download or application page for the data the paper used)
+    - https://disc.gsfc.nasa.gov/data-access (read during the check)
 
 - **Access: free download (some require an account)** (basis: the tool's built-in database list; not stated in the paper — no statement found)
   - Paper evidence: no paper states an access condition
@@ -266,18 +323,20 @@
 
 ## Population census / 1% population sample survey　(used by 1 paper)
 
-| | In the papers (what prior authors used) | Official site now (checked 2026-11-18) |
+| | In the papers (what prior authors used) | Official site now |
 |---|---|---|
-| Access channel | no channel stated (access: individual-level microdata require a formal application and are generally hard to obtain) | public download |
-| Eligibility | not stated | not stated on the page |
-| Use restrictions | none stated | none stated on the page |
-| Version | not stated | the page covers the version the paper used |
-| Source | see per-paper evidence below | https://www.stats.gov.cn/sj/ndsj/2011/html/D0309C.HTM — found via previously verified official domain |
+| Access channel | no channel stated (access: individual-level microdata require a formal application and are generally hard to obtain) | no verified official access route found — please check this yourself |
+| Eligibility | not stated | — |
+| Use restrictions | none stated | — |
+| Version | not stated | — |
+| Source | see per-paper evidence below | — |
 
-  - Official-site text (access): “本表是2010年第六次全国人口普查初步汇总的11月1日零时数。”
-  - Evidence comes from: the official page itself
-  - Why this counts as official: previously verified official domain (stats.gov.cn)
-  - Channel, eligibility and version correspondence are model judgments on the quoted official text.
+  - Leads from the check (not verified; open them and judge yourself):
+    - https://www.stats.gov.cn/sj/ndsj/2011/html/D0309C.HTM (page found, but the quoted sentence does not say how to obtain the data — open it and look for a download or application page for the data the paper used)
+    - https://www.stats.gov.cn/sj/pcsj/rkpc/6rp/indexch.htm (read during the check)
+    - https://www.stats.gov.cn/sj/pcsj/rkpc/6rp/html/fu05.htm (read during the check)
+    - https://www.stats.gov.cn/sj/pcsj/rkpc/6rp/ (read during the check)
+    - https://www.stats.gov.cn/zt_18555/zdtjgz/zgrkpc/d6crkpc/dlcrkpczl/index.html (read during the check)
 
 - **Access: individual-level microdata require a formal application and are generally hard to obtain** (basis: the tool's built-in database list; not stated in the paper — no statement found)
   - Paper evidence: no paper states an access condition
@@ -347,7 +406,6 @@ The usage relation of the following records cannot be confirmed (the model judge
 ## Excluded / candidates to check
 The following entries were not counted as data sources used in the paper, for the reasons given. Source text is shown only for quotes verified in the paper.
 
-- Chang2016: Ctrip call center worker productivity data (the source quote cannot be found in the paper, so use in this paper cannot be confirmed)
 - Chang2016: Shanghai precipitation data (the paper does not say where the data come from; possibly just a variable) — p. 19: “Columns 4 and 5 of Table 8 repeat this exercise, but focus on precipitation.”
 
 ## Paper-level sample restrictions (attribution unverified)
@@ -356,6 +414,7 @@ The following statements do not name a specific data source, so the program cann
 - Chang2016 p. 5: “The difference in data coverage periods is due to a combination of pollution data availability and the time coverage of the productivity data provided by the firm.”
 - Chang2016 p. 19: “Unfortunately, such data are only available for Shanghai, so we only show results focusing on workers in that city.”
 - Chang2016 p. 8: “Unfortunately, we only observe worker type for a subset of Shanghai workers.”
+- Chang2016 p. 11: “Because we have "timeclock" data for only a subset of our sample, the number of observations drops to 171,713 when examining shift length.”
 
 ## Items to verify (applies to all data above)
 Papers record the data and channels that prior authors used at the time. Before using the data, check each item with the data provider:

@@ -238,5 +238,61 @@ def run_merge_choices() -> bool:
     return ok_all
 
 
+def run_main_first() -> bool:
+    """2026-11-18：报告开头“按论文列出主要数据”。只改显示位置，不改核对结果。"""
+    print("\n主要数据前置（main_data_markdown）")
+    ok_ev = lambda q, p=3: {"quote": q, "page": p, "verified": True}
+    bad_ev = lambda q, p=5: {"quote": q, "page": p, "verified": False}
+    used_main = {"name": "Firm Payroll Records", "role": "main", "source_evidence": ok_ev("Our data come from Firm Payroll Records.")}
+    used_rob = {"name": "Weather Station Data", "role": "robustness", "source_evidence": ok_ev("Weather data come from stations.")}
+    unver = {"name": "Call Center Output", "role": "main", "mention_reason": "source_unverified",
+             "source_evidence": bad_ev("Our output data come from Acme.", 5)}
+    var = {"name": "Price Index", "role": "main", "mention_reason": "possible_variable",
+           "source_evidence": ok_ev("We use the price index for each province.", 2)}
+    usage = {"name": "Economic Census", "role": "main", "usage": "analyzed", "source_evidence": ok_ev("Based on the Economic Census.", 14),
+             "usage_evidence": bad_ev("We compute averages using the Economic Census.", 29)}
+    side = {"name": "Side Note Data", "role": "robustness", "mention_reason": "possible_variable", "source_evidence": ok_ev("x y z")}
+    used_main["also_controls"] = True
+    ctl = {"name": "City Statistical Yearbook", "role": "control", "source_evidence": ok_ev("City controls come from the City Statistical Yearbook.", 6)}
+    rep = {"data_sources": [used_main, used_rob, ctl], "usage_pending": [usage], "other_mentions": [unver, var, side], "referenced": []}
+    old = {"data_sources": [{"name": "Old Survey", "source_evidence": ok_ev("We use the Old Survey.")}], "other_mentions": []}
+    official = {step3.canonical_key(used_main)[0]: {"result": {"outcome": "found", "finding": {
+        "channel": "apply_to_provider", "url": "https://data.example.gov/apply", "pending": ["version"], "evidence_source": "official_page"}}}}
+    text = step3.main_data_markdown([("P1", rep), ("Old", old)], official)
+    p1 = text.split("## P1")[1].split("## Old")[0]
+    main_part, todo = p1.split("To verify")[0], p1.split("To verify")[1]
+    cases = [
+        ("主要数据（role=main、已进入本文使用）排在论文下，附核对过的原文和页码", "**Firm Payroll Records**" in main_part and "p. 3: “Our data come from Firm Payroll Records.”" in main_part),
+        ("同一份数据也提供控制变量：留在主要数据并注明", "**Firm Payroll Records** _(also provides control variables)_" in main_part),
+        ("只提供控制变量的数据放进辅助数据，附原文页码，不在主要数据和其他数据里",
+         "**Auxiliary data (control variables only)**\n- **City Statistical Yearbook** — p. 6: “City controls come from the City Statistical Yearbook.”" in p1
+         and "City Statistical Yearbook" not in main_part and "[control variables]" not in p1),
+        ("稳健性 / 补充数据不进主要数据，在下面按用途列出并附原文页码", "Weather Station Data" not in main_part
+         and "- [robustness check] **Weather Station Data** — p. 3: “Weather data come from stations.”" in p1),
+        ("主要数据旁写官网状态（渠道、网站、待核对项）", "apply to the data provider (data.example.gov); years / version used by the paper not named on the page — pending" in main_part),
+        ("证据不足的主要数据候选放进“待核对”，三种原因各自说明缺什么", all(n in todo for n in ("Call Center Output", "Price Index", "Economic Census"))
+         and "was not found in the PDF (the model pointed to p. 5)" in todo and "found no source wording" in todo
+         and "analyses these data was not found in the PDF (the model pointed to p. 29)" in todo),
+        ("没通过核对的引用不显示原文；通过的照常显示", "Our output data come from Acme." not in todo and "We use the price index for each province." in todo),
+        ("非主要数据的其他提及不进“待核对”", "Side Note Data" not in todo),
+        ("没有官网结果的主要数据写 not checked（例：待核对候选不跑官网核查）",
+         step3.main_data_markdown([("P", {"data_sources": [used_main], "other_mentions": []})], {}).count("not checked") == 1),
+        ("旧结果没有 role 字段：全部列为主要数据并注明", "older result without a role field" in text and "**Old Survey**" in text),
+    ]
+    q = "We use the restricted data files of the Panel Survey of Things."
+    raw = {"data_sources": [{"name": "Panel Survey of Things", "role": "main", "kind": "dataset", "provider": None, "unit": None,
+                             "sample_period": None, "period_evidence": None, "access_category": "unknown",
+                             "source_evidence": {"quote": q, "page": 1}, "access_evidence": None, "access_applies_to": None,
+                             "usage": "analyzed", "usage_evidence": {"quote": q, "page": 1}, "period_form": None, "period_years": None}],
+           "sample_limitations": [], "availability_statement": None}
+    full = step3.report_markdown([("P", step2.verify_result([f"Data. {q} End."], raw))])
+    cases.append(("完整报告以主要数据一览开头，后面仍是合并摘要",
+                  full.startswith("# Main data by paper") and "**Panel Survey of Things** — p. 1" in full
+                  and full.index("# Main data by paper") < full.index("# Data source summary")))
+    for name, ok in cases:
+        print(f"  {'✓' if ok else '✗'}  {name}")
+    return all(ok for _, ok in cases)
+
+
 if __name__ == "__main__":
-    raise SystemExit(0 if run() else 1)
+    raise SystemExit(0 if (run() & run_main_first()) else 1)

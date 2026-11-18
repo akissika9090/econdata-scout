@@ -1,6 +1,6 @@
 # EconData Scout
 
-日本語の概要：[docs/overview_ja.md](docs/overview_ja.md)
+日本語の概要：[docs/overview_ja.md](docs/overview_ja.md)　｜　中国経済データの入手経路カタログ（設計と評価）：[docs/access_catalog_ja.md](docs/access_catalog_ja.md)　｜　出力例：[demo/outputs/access_table_ja.md](demo/outputs/access_table_ja.md)
 
 EconData Scout is a **citation-backed data-provenance tool for economics papers**. Give it a research direction: it finds prior papers and reports **which data each paper used and what the paper's own text says about that data** — access conditions, sample years, links — with the quote and page for every conclusion, so you can check each one yourself.
 
@@ -10,7 +10,9 @@ The tool is meant for the stage **before choosing a research topic**. Data used 
 
 **V2 (optional, `--official`): source and access leads.** Papers rarely say how to get their data (in our material, 28 of 34 unconfirmed sources had no access statement). V2 lets an agent search the **provider's website** for each data source and adds a second column: where the data comes from today and how it is obtained, with the URL, the quoted page text and the date checked. A finding is shown only if the program confirmed that the page is an official source and that the quotes appear on it word for word. A site that is not the original provider but names the data (e.g. NBER for CPS extracts) is shown as a **distributor**, labelled as such. When the check finds nothing, the report says "please check this yourself" and lists the pages it reached. V2 cannot help with data the extraction step missed.
 
-> Status: a personal portfolio project. V1 was frozen on 2026-11-06. **V2 is a release candidate (rules v2.5b, 2026-11-17)**, not yet published; see [docs/release_notes_v2.md](docs/release_notes_v2.md). Not a production tool. See [Known limitations](#known-limitations). License: MIT for the project's own code and documentation; third-party material is excluded (see [License](#license)).
+> Status: a personal portfolio project. V1 was frozen on 2026-11-06. **V2 is a release candidate (rules v2.5d, 2026-11-18)**, not yet published; see [docs/release_notes_v2.md](docs/release_notes_v2.md). Not a production tool. See [Known limitations](#known-limitations). License: MIT for the project's own code and documentation; third-party material is excluded (see [License](#license)).
+
+**Access catalog for Chinese economic data (Japanese output).** For 9 frequently used Chinese data sources (China Statistical Yearbook, China City Statistical Yearbook, population census tabulations, China Meteorological Data Service, air-quality data, CGSS, CFPS, CSMAR, China Industrial Enterprise Database), every run also writes `access_table_ja.md`: for each main data source, what the paper used, the access restriction and how far it was verified, the official entry page, the next step and what remains unconfirmed. Restriction and verification are reported separately: "institutional eligibility required" is itself a useful finding before choosing a topic. In an independent test after freezing the catalog (13 papers), it gave **0 wrong entries**; it also confirmed **0** version-specific access paths, which shows the limits of its verification. Details (Japanese): [docs/access_catalog_ja.md](docs/access_catalog_ja.md).
 
 ## What it does and does not do
 
@@ -48,7 +50,7 @@ scout.py runs all five steps; each run is saved under runs/<date_time>/
 
 ## Installation
 
-Tested with Python 3.14 on macOS.
+Tested with Python 3.14 on macOS; the default tests also pass on Python 3.10 (Linux).
 
 ```bash
 python -m venv .venv
@@ -148,9 +150,10 @@ Details are in [docs/evaluation.md](docs/evaluation.md). These are diagnostic re
 | `agent.py`, `agent_tools.py` | Optional Evidence Recovery Agent |
 | `official_check.py`, `web_tools.py`, `deepseek_client.py` | V2 official-site check (agent loop and program checks; web search/fetch with cache; DeepSeek client). Run it with `scout.py --official` |
 | `known_databases.json` | Hand-maintained database hints (not evidence from papers) |
+| `access_catalog.py`, `access_catalog.json` | Access catalog for 9 Chinese data sources and the Japanese access table (`access_table_ja.md`) |
 | `run_tests.py`, `test_support.py`, `test_*.py` | Default and optional test suites |
 | `demo/` | Replay script, saved reports, copies of the saved inputs (paper abstracts removed) |
-| `docs/contract.md`, `docs/evaluation.md`, `docs/release_notes_v2.md`, `docs/overview_ja.md` | What each part may decide; evaluation summary; V2 release notes and test results |
+| `docs/contract.md`, `docs/evaluation.md`, `docs/release_notes_v2.md`, `docs/overview_ja.md`, `docs/access_catalog_ja.md` | What each part may decide; evaluation summary; V2 release notes and test results |
 | `LICENSE`, `THIRD_PARTY.md` | MIT License; third-party material that the license does not cover |
 
 Paper PDFs, saved evaluation materials, run logs and the development log are not included.
