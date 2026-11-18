@@ -137,11 +137,13 @@ sp.gemini_json = orig
 # --- 记录实际使用的模型：gemini_client 报告用了备用模型时，检索结果里要能看出来 ---
 orig_gen = sp.gemini_client.generate_json
 returns = iter([({"policy": "p", "outcome": "o", "queries": ["q1"]}, "main-model"), ({"papers": []}, "backup-model")])
-sp.gemini_client.generate_json = lambda system, content, schema: next(returns)
+fast_flags = []
+sp.gemini_client.generate_json = lambda system, content, schema, **kw: (fast_flags.append(kw.get("fast_fallback")), next(returns))[1]
 sp.MODELS_USED.clear()
 sp.plan_search("topic")
 sp.screen("topic", focus, [work("A", "a")])
 check("模型记录：每次调用实际用的模型都记下来（包括备用模型）", sp.MODELS_USED == ["main-model", "backup-model"])
+check("検索の Gemini 呼び出しは fast_fallback=True（混雑時は待たずに予備モデルへ）", fast_flags and all(fast_flags))
 sp.gemini_client.generate_json = orig_gen
 
 print("\n全部通过" if failures == 0 else f"\n{failures} 项失败")

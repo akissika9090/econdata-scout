@@ -57,6 +57,10 @@ r, calls, waits = run([503, 429, '{"a": 2}'])
 check("503、429 是暂时性错误：同一模型等待后重试", r == ({"a": 2}, MAIN) and calls == [MAIN] * 3)
 check("等待间隔是 15 秒、45 秒", waits == [15, 45])
 
+client_f, waits_f = FakeClient([503, '{"f": 1}']), []
+r_f = gc.generate_json("s", "c", {"type": "object"}, client=client_f, sleep=waits_f.append, fast_fallback=True)
+check("fast_fallback（検索用）：主モデルが混雑なら待たずに予備モデルへ", r_f == ({"f": 1}, BACKUP) and client_f.calls == [MAIN, BACKUP] and waits_f == [])
+
 r, calls, waits = run([503, 503, 500, '{"a": 3}'])
 check("主模型 3 次都失败 → 换备用模型，并报告用的是备用模型", r == ({"a": 3}, BACKUP) and calls == [MAIN] * 3 + [BACKUP])
 

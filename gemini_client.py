@@ -21,7 +21,7 @@ RETRY_CODES = (429, 500, 503)      # 暂时性错误：等一会儿再试
 
 
 def generate_json(system: str, content: str, schema: dict, temperature: float = 0,
-                  client=None, sleep=time.sleep) -> tuple[dict, str]:
+                  client=None, sleep=time.sleep, fast_fallback: bool = False) -> tuple[dict, str]:
     """返回 (JSON 结果, 实际使用的模型名)。
     client 和 sleep 只在测试时替换（用假的客户端、不真的等待），平时不用传。
     环境变量 LLM_PROVIDER=deepseek 时改用 DeepSeek（2026-11-17：Gemini 免费层太慢）。返回的模型名会写进结果，换了模型可以追溯。"""
@@ -30,6 +30,10 @@ def generate_json(system: str, content: str, schema: dict, temperature: float = 
         return deepseek_client.generate_json(system, content, schema=schema, full_schema=True)
     from google import genai
     from google.genai import errors, types
+    if client is None and not (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")):
+        raise SystemExit("No API key found. Set GEMINI_API_KEY first (or LLM_PROVIDER=deepseek with DEEPSEEK_API_KEY). "
+                         "API キーが見つかりません。先に GEMINI_API_KEY を設定してください"
+                         "（DeepSeek を使う場合は LLM_PROVIDER=deepseek と DEEPSEEK_API_KEY）。")
     client = client or genai.Client()   # 自动读取环境变量 GEMINI_API_KEY
     config = types.GenerateContentConfig(
         system_instruction=system,
@@ -39,8 +43,11 @@ def generate_json(system: str, content: str, schema: dict, temperature: float = 
     )
     models = [GEMINI_MODEL] + [m for m in GEMINI_FALLBACK_MODELS if m != GEMINI_MODEL]
     last_error = None
-    for model in models:
-        for attempt, wait in enumerate(RETRY_WAITS, start=1):
+    for k, model in enumerate(models):
+        # fast_fallback（検索用、2026-11-19）：主モデルが混雑なら待たずに次のモデルへ。最後のモデルだけ待って再試行する。
+        # 実測：待ち 15 秒 + 45 秒が 2 回で、検索 2.5 分のうち約 2 分が待ち時間だった
+        waits = [0] if fast_fallback and k < len(models) - 1 else RETRY_WAITS
+        for attempt, wait in enumerate(waits, start=1):
             if wait:
                 print(f"  retrying in {wait}s ({model}, attempt {attempt})...")
                 sleep(wait)

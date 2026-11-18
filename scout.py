@@ -127,12 +127,15 @@ def run(topic: str | None, use_agent: bool = False, extra_pdfs: list[str] | None
         print(f"\n[1/5] Searching OpenAlex for: {topic}")
         found = search(topic)
         save_json(os.path.join(run_dir, "candidates.json"), found)
-        search_papers.print_candidates(found)
+        if not search_only:   # --search-only では自動調査をしないので、「自動で調べる論文」の一覧は出さない
+            search_papers.print_candidates(found)
         if search_only:   # 搜索 → 候选论文与下载途径 → 学生自己判断相关性、下载 → 用 --pdf 上传（2026-11-18）
             path = os.path.join(run_dir, "candidates_ja.md")
             with open(path, "w", encoding="utf-8") as f:
                 f.write(candidates_markdown_ja(topic, found))
-            print(f"\nCandidate list saved to {path}\nDownload the papers you judge relevant, then run: python scout.py --pdf <files>")
+            n = len(found.get("auto", [])) + len(found.get("upload", []))
+            print(f"\n{n} candidate papers (relevance is the model's judgement from titles and abstracts; nothing was downloaded or analysed).")
+            print(f"Candidate list (Japanese): {path}\nCheck relevance yourself, put the PDFs you choose in one folder, then run: python scout.py --pdf <folder>")
             record = {"topic": topic, "run_dir": run_dir, "search_only": True, "candidates": path}
             save_json(os.path.join(run_dir, "run.json"), record)
             return record

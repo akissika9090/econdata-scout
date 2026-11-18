@@ -152,7 +152,7 @@ MODELS_USED = []   # 本次检索中每次调用实际成功的模型，写进�
 
 def gemini_json(system: str, content: str, schema: dict) -> dict:
     """调用 Gemini 并返回 JSON（重试、换备用模型的做法在 gemini_client 里，和 step2 共用），记下实际使用的模型。"""
-    data, model = gemini_client.generate_json(system, content, schema)
+    data, model = gemini_client.generate_json(system, content, schema, fast_fallback=True)   # 検索は待たずに予備モデルへ
     MODELS_USED.append(model)
     return data
 
