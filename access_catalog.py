@@ -212,16 +212,20 @@ def row_ja(label: str, src: dict) -> list[str]:
             return [label, used, verdict, "—", f"{ja.get('product')} の可能性。どの回・どの資料（集計表かミクロデータか）か確認する", ja.get("still_check")]
         urls = re.findall(r"https?://[^\s（）()]+", "；".join(m.get("entries") or []))   # 入口欄は URL だけ（説明文は中国語のため）
         return [label, used, verdict, "；".join(urls) or "—", ja.get("next_step"), ja.get("when")]
+    # 製品を特定できた行：結論欄に入手の条件と理由、版の確認は未確認欄へ
     urls = m.get("entries") or [x["url"] for x in (m.get("evidence") or [])[:1]]
-    return [label, used, verdict, "；".join(urls) or "—", f"制限：{ja.get('access')}。{ja.get('next_step')}", ja.get("still_check")]
+    verdict = ja.get("verdict_version") if m["level"] == "product_version" else ja.get("verdict")
+    entry = f"{ja.get('entry_label')}：{'；'.join(urls)}" if urls else (ja.get("entry_label") or "—")
+    return [label, used, verdict, entry, ja.get("next_step"), ja.get("still_check")]
 
 
 def render_table_ja(reports: list[tuple[str, dict]], main_only: bool = True) -> str:
     """reports = [(論文ラベル, step2/step3 のレポート)]。主要データ（role=main）を 1 行ずつ表にする。"""
     lines = ["# データ入手経路（中国経済データ・カタログ照合）", "",
-             "結論の読み方：入手の制限と、確認の段階を分けて書く。「制限付き入手」「契約が必要」でも、"
-             "申請先や確認すべき点が分かれば選題前の判断材料になる。カタログ未収録のデータは本文の説明を参照。", "",
-             "| 論文 | 論文が使ったデータ | 結論 | 入口 | 次にやること | 未確認の条件 |", "|---|---|---|---|---|---|"]
+             "読み方：「結論」はそのデータを手に入れるための条件と理由（📖 既知の経路 / 🔐 制限あり / ⛔ 公開なし / ✅ 確認済み）。"
+             "「次にやること」は誰に何を確認するか。論文が使った版・年が入っているかは「未確認の条件」に書く。"
+             "カタログ未収録のデータは論文本文の説明を参照。", "",
+             "| 論文 | 論文が使ったデータ | 結論（入手の条件と理由） | 入口 | 次にやること | 未確認の条件 |", "|---|---|---|---|---|---|"]
     for label, rep in reports:
         for src in (rep or {}).get("data_sources", []):
             if main_only and src.get("role") != "main":

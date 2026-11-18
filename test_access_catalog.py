@@ -38,7 +38,7 @@ rep = {"data_sources": [
 table = catalog.render_table_ja([("Test paper", rep)])
 rows = [l for l in table.splitlines() if l.startswith("| Test paper")]
 for desc, ok in [("主要データだけ 2 行", len(rows) == 2),
-                 ("CSMAR は契約が必要・図書館で確認", "契約が必要" in rows[0] and "図書館" in rows[0] and "p.4" in rows[0]),
+                 ("CSMAR：結論に機関契約の制限、次にやることは本校図書館で子库と年を確認", "機関契約による制限" in rows[0] and "本校図書館" in rows[0] and "サブデータベースと年" in rows[0] and "p.4" in rows[0]),
                  ("日本のセンサスはカタログ未収録", "カタログ未収録" in rows[1]),
                  ("表に中国統計局の入口を出さない", "stats.gov.cn" not in rows[1])]:
     fails += not ok
