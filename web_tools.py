@@ -14,6 +14,8 @@ import os
 import re
 import time
 import unicodedata
+
+import time_budget
 from datetime import date
 from html.parser import HTMLParser
 from urllib.parse import urljoin, urlparse
@@ -152,9 +154,11 @@ class Web:
     def _deepseek(self, endpoint: str, payload: dict, retry: bool = True) -> dict:
         last = None
         for wait in (RETRY_WAITS if retry else [0]):
+            if wait and not time_budget.can_wait(wait):   # 总时限内来不及再试：不等、不再发请求
+                raise time_budget.Expired(f"time limit reached before retrying DeepSeek {endpoint}", f"DeepSeek {endpoint} retry")
             if wait:
                 self.sleep(wait)
-            r = self.session.post(f"{DEEPSEEK_TOOLS}/{endpoint}", json=payload, timeout=60,
+            r = self.session.post(f"{DEEPSEEK_TOOLS}/{endpoint}", json=payload, timeout=time_budget.cap(60),
                                   headers={"Authorization": f"Bearer {self.key}", "Content-Type": "application/json"})
             if r.status_code == 200:
                 return r.json()
@@ -174,6 +178,8 @@ class Web:
             return {"results": [], "error": "no DEEPSEEK_API_KEY: web search is unavailable"}
         try:
             data = self._deepseek("search", {"query": query[:128], "count": count})
+        except time_budget.Expired:
+            raise   # 总时限到了：交给官网核查记为 timed_out，不当成“搜不到”
         except Exception as e:
             return {"results": [], "error": str(e)[:200]}
         self.calls["search"] += 1
@@ -183,10 +189,37 @@ class Web:
         self._save("search", f"{query}|{count}", out)
         return out
 
+    def _get_bounded(self, url: str, timeout: int, max_hops: int = 10):
+        """设了总时限时的读取（2026-11-19）：逐跳跟随重定向、分块读取，每一跳和每一块都检查截止时间，
+        到时立即关闭连接、抛 Expired——超时返回后后台不会继续读慢速网页或继续跳转。"""
+        cur = url
+        for _ in range(max_hops):
+            r = self.session.get(cur, timeout=time_budget.cap(timeout), allow_redirects=False, stream=True)
+            loc = r.headers.get("Location") or r.headers.get("location")
+            if r.status_code in (301, 302, 303, 307, 308) and loc:
+                r.close()
+                cur = urljoin(cur, loc)
+                continue
+            chunks = []
+            for chunk in r.iter_content(65536):
+                chunks.append(chunk)
+                left = time_budget.remaining()
+                if left is not None and left <= 0:
+                    r.close()
+                    raise time_budget.Expired("time limit reached while reading a page", f"reading {cur[:80]}")
+            r._content, r._content_consumed = b"".join(chunks), True   # 让 r.content / apparent_encoding 照常可用
+            return r
+        raise RuntimeError("too many redirects")
+
     def _direct(self, url: str, errors: list, timeout: int = 25) -> dict | None:
         """直接读取网页（requests）。成功返回页面；失败把原因加进 errors，返回 None。"""
         try:
-            r = self.session.get(url, timeout=timeout, allow_redirects=True)
+            if time_budget.remaining() is None:
+                r = self.session.get(url, timeout=timeout, allow_redirects=True)
+            else:
+                r = self._get_bounded(url, timeout)
+        except time_budget.Expired:
+            raise
         except Exception as e:
             errors.append(f"direct ({url.split(':')[0]}): {type(e).__name__}")
             return None
@@ -228,6 +261,8 @@ class Web:
                     self.calls["fetch_deepseek"] += 1
                 else:
                     errors.append("deepseek_fetch: empty content")
+            except time_budget.Expired:
+                raise
             except Exception as e:
                 errors.append(f"deepseek_fetch: {str(e)[:120]}")
         if page is None:

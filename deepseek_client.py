@@ -52,15 +52,20 @@ def generate_json(system: str, content: str, schema: dict | None = None, session
                "thinking": {"type": "disabled"},
                "messages": [{"role": "system", "content": system + fields},
                             {"role": "user", "content": content}]}
+    import time_budget
     session = session or requests.Session()
     last, parse_failed = None, None
     for wait in RETRY_WAITS:
+        if wait and not time_budget.can_wait(wait):   # 总时限内来不及再试：不等、不再发请求
+            raise time_budget.Expired(f"time limit reached before retrying DeepSeek ({last})", "DeepSeek retry")
         if wait:
             print(f"  retrying in {wait}s (DeepSeek)...", flush=True)
             sleep(wait)
         try:
-            r = session.post(URL, json=payload, timeout=120,
+            r = session.post(URL, json=payload, timeout=time_budget.cap(120),
                              headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+        except time_budget.Expired:
+            raise
         except Exception as e:   # 网络超时等
             last = f"{type(e).__name__}"
             continue

@@ -416,8 +416,10 @@ VIA_LABELS = {"paper": "URL in the paper", "learned": "previously verified offic
 NOT_FOUND_LABELS = {"not_found": "no verified official access route found", "budget_exhausted": "no verified official access route "
                     "found within the step budget", "agent_error": "the check could not run (model call failed)",
                     "parse_error": "official-site check failed: the model's answer could not be read",
-                    "check_failed": "official-site check failed"}
-CHECK_FAILED = ("agent_error", "parse_error", "check_failed")   # 核查本身没跑完：不是“没找到”，要说清楚
+                    "check_failed": "official-site check failed",
+                    "timed_out": "official-site check stopped at the time limit before a verified finding — not checked to the end "
+                                 "(does not mean unavailable); rerun later"}
+CHECK_FAILED = ("agent_error", "parse_error", "check_failed", "timed_out")   # 核查本身没跑完（含时限内未查完）：不是“没找到”   # 核查本身没跑完：不是“没找到”，要说清楚
 
 
 def unanswered_leads(res: dict, limit: int = 5) -> list[str]:
@@ -502,8 +504,9 @@ def comparison_block(m: dict, entry: dict | None) -> list[str]:
         head = "Official site now"
         official = {k: "—" for k in paper}
         official["channel"] = NOT_FOUND_LABELS.get(res.get("outcome"), "not checked") if entry else "not checked"
-        if entry and res.get("outcome") in CHECK_FAILED and res.get("error"):
-            official["channel"] += f" ({res['error'][:120]})"
+        why = res.get("error") or res.get("stopped_by")   # 时限内未查完：写出在做什么时到的时限
+        if entry and res.get("outcome") in CHECK_FAILED and why:
+            official["channel"] += f" ({why[:120]})"
         if entry:
             official["channel"] += " — please check this yourself"
             extra += unanswered_leads(res)
@@ -682,7 +685,8 @@ def official_short(entry: dict | None) -> str:
     if res.get("outcome") == "manual_check":
         return "official page found but could not be read — check manually"
     if res.get("outcome") in CHECK_FAILED:
-        return f"{NOT_FOUND_LABELS[res['outcome']]}" + (f" ({res['error'][:120]})" if res.get("error") else "") + " — check this yourself"
+        why = res.get("error") or res.get("stopped_by")
+        return f"{NOT_FOUND_LABELS[res['outcome']]}" + (f" ({why[:120]})" if why else "") + " — check this yourself"
     return "no verified access route found — leads in the summary below"
 
 

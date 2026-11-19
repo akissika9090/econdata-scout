@@ -19,9 +19,12 @@ V2 官网核查 Agent：论文没写清楚怎么获取时，由模型去数据�
     渠道、资格、版本是否对应，是模型对官网原文的语义判断，报告中如实标注
 """
 
+import contextvars
 import json
 import os
 import re
+import threading
+import time
 from datetime import date
 from urllib.parse import urlparse
 
@@ -37,6 +40,7 @@ MAX_STEPS = 12   # 2026-11-17 试点：8 步时 CSMAR、SEDAC 在读不到的网
 MAX_SEARCHES = 6   # v2.4：第二轮 WDI 已读到世界银行页面，却把步数花在搜索上，没来得及提交
 MAX_OBSERVATION = 2500
 LEARNED_FILE = "official_domains.json"
+TIME_LIMIT = 240   # v2（2026-11-19，本人提出）：每个数据源的总时限（秒），模型调用、网页读取、重试、兜底流程都算在内
 ACTIONS = ["search_web", "read_page", "submit_finding", "give_up"]
 CHANNELS = ["public_download", "registration_download", "subscription", "purchase", "apply_to_provider", "request_from_author"]
 ELIGIBILITY = ["researchers", "individuals", "institution_must_apply", "not_stated"]
@@ -670,6 +674,60 @@ def verify_finding(web: Web, src: dict, decision: dict, learned: dict, linked_fr
     return True, f"Accepted: verified against {where}." + (f" Notes: {'; '.join(notes)}" if notes else ""), finding
 
 
+# ============ v2：总时限（唯一的截止时间来源） ============
+# requests 的 timeout 只限制“连接 / 两次收到数据之间”的等待：慢慢滴数据的响应、多次重定向、重试的等待都可能超过它。
+# 所以这里不靠各处的 timeout 参数，而是把每一次模型调用和网页读取 / 搜索放进后台线程，只等到截止时间为止；
+# 到时就不再等它（线程的结果丢弃），记下是在做什么时到的时限。截止时间只在 run_check 设一次。
+# 截止时间只有一个来源：time_budget（deepseek_client、web_tools 的单次请求和重试也按它缩短 / 停止）
+import time_budget
+clock = time_budget.clock
+remaining = time_budget.remaining
+
+
+class TimeLimit(time_budget.Expired):
+    def __init__(self, where: str):
+        super().__init__(f"time limit reached during {where}", where)
+
+
+def bounded(where: str, fn, *args, **kwargs):
+    """在截止时间内执行 fn；没设时限就直接执行。到时抛 TimeLimit(where)。"""
+    r = remaining()
+    if r is None:
+        return fn(*args, **kwargs)
+    if r <= 0:
+        raise TimeLimit(where)
+    box, ctx = {}, contextvars.copy_context()
+
+    def work():
+        try:
+            box["value"] = ctx.run(fn, *args, **kwargs)
+        except BaseException as e:   # 包括 SystemExit（如没有 API key）：原样交回主线程
+            box["error"] = e
+    t = threading.Thread(target=work, daemon=True)
+    t.start()
+    t.join(r)
+    if t.is_alive():
+        raise TimeLimit(where)
+    if "error" in box:
+        raise box["error"]
+    return box["value"]
+
+
+class BoundedWeb:
+    """网页读取和搜索都受总时限约束（包括 Web 内部的重定向、证书回退、DeepSeek Fetch 及其重试）。"""
+    def __init__(self, web):
+        self._web = web
+
+    def fetch(self, url, *args, **kwargs):
+        return bounded(f"reading {url[:80]}", self._web.fetch, url, *args, **kwargs)
+
+    def search(self, query, *args, **kwargs):
+        return bounded(f"searching {query[:60]!r}", self._web.search, query, *args, **kwargs)
+
+    def __getattr__(self, name):
+        return getattr(self._web, name)
+
+
 # ============ Agent 循环 ============
 
 def describe_source(src: dict, learned: dict) -> str:
@@ -782,12 +840,76 @@ def online_edition_hits(src: dict, web: Web, learned: dict) -> list[str] | None:
             if is_institutional(host(r["url"])) or any(host(r["url"]).endswith(d) for d in learned_domains_for(src, learned))]
 
 
-def run_check(src: dict, web: Web, learned: dict, max_steps: int = MAX_STEPS, ask=ask_model, verbose: bool = False) -> dict:
-    """核查一个数据源：Agent 先查；中国的纸质统计资料确认没有官方在线版后，补上统计资料馆这个已知渠道。"""
+def run_check(src: dict, web: Web, learned: dict, max_steps: int = MAX_STEPS, ask=ask_model, verbose: bool = False,
+              time_limit: float | None = TIME_LIMIT) -> dict:
+    """核查一个数据源，总时限 time_limit 秒（None = 不限，离线回放用）。结果里记下实际耗时和到时原因（timing）。"""
+    t0 = clock()
+    token = time_budget.start(time_limit if time_limit else None)
+    try:
+        if time_limit:
+            web = BoundedWeb(web)
+            raw_ask = ask
+            ask = lambda system, content: bounded("model call", raw_ask, system, content)
+        result = _run_check(src, web, learned, max_steps, ask, verbose)
+    finally:
+        time_budget.stop(token)
+    result["timing"] = {"seconds": round(clock() - t0, 1), "limit": time_limit, "stopped_by": result.get("stopped_by")}
+    return result
+
+
+def reset_notes(first: dict) -> str:
+    """v3：重置（第二次查）时交给模型的记录：第一次读过的页面、认定为官方的站点、搜索词、读不到的入口、被退回的提交及原因。"""
+    read = list((first.get("read") or {}).keys())[:12]
+    searched = [s["args"].get("query") for s in first.get("steps", []) if s.get("action") == "search_web"][:8]
+    rejected = [f"{s['args'].get('url')} → {s.get('observation', '')[:160]}" for s in first.get("steps", [])
+                if s.get("action") == "submit_finding"][:5]
+    return ("A first attempt used up its steps without a verified finding. Do not repeat it.\n"
+            f"Pages already read: {read or 'none'}\nOfficial sites identified: {first.get('official_sites') or 'none'}\n"
+            f"Searches already tried: {searched or 'none'}\nUnreadable official pages: {list((first.get('leads') or {}))[:5] or 'none'}\n"
+            f"Submissions rejected and why: {rejected or 'none'}\n"
+            "Go to the most promising page directly (or the data's own catalogue / download section), "
+            "and submit as soon as a page states access.")
+
+
+def combine_attempts(first: dict, second: dict) -> dict:
+    """v3：两次尝试合并成一个结果，第一次的调查成果不丢。
+    - 结论：只有程序核对通过的 finding 算“已核实”，并记下来自第几次尝试（verified_in）
+    - 第二次本身出错（模型调用失败 / 输出不可读）：结论按第一次（步数用完），第二次的错误照记
+    - 读过的页面、官方站点、读不到的入口、全部步骤（标 attempt）都保留两次的并集；attempts 列出每次的结果和失败原因"""
+    def summary(r, k):
+        return {"attempt": k, "outcome": r.get("outcome"), "steps": len(r.get("steps", [])),
+                "reason": r.get("reason") or r.get("error") or r.get("stopped_by"),
+                "verified_finding": bool(r.get("finding"))}
+    base = second if second.get("outcome") not in ("agent_error", "parse_error") else first
+    out = dict(base)
+    out["steps"] = [dict(s, attempt=1) for s in first.get("steps", [])] + [dict(s, attempt=2) for s in second.get("steps", [])]
+    out["read"] = {**(first.get("read") or {}), **(second.get("read") or {})}
+    out["leads"] = {**(first.get("leads") or {}), **(second.get("leads") or {})}
+    out["official_sites"] = sorted(set(first.get("official_sites") or []) | set(second.get("official_sites") or []))
+    out["attempts"] = [summary(first, 1), summary(second, 2)]
+    if out.get("finding"):
+        out["verified_in"] = 2 if base is second else 1
+    if base is first:
+        out["second_attempt_error"] = second.get("error")
+    return out
+
+
+def _run_check(src: dict, web, learned: dict, max_steps: int, ask, verbose: bool) -> dict:
+    """Agent 先查；中国的纸质统计资料确认没有官方在线版后，补上统计资料馆这个已知渠道（兜底流程也在总时限内）。"""
     result = agent_check(src, web, learned, max_steps, ask, verbose)
+    r = remaining()
+    if result["outcome"] == "budget_exhausted" and (r is None or r > 0):
+        # v3（2026-11-19，本人提出）：步数用完 → 带着第一次的记录重置一次；两次的依据和失败原因都保留
+        second = agent_check(src, web, learned, max_steps, ask, verbose, prior_notes=reset_notes(result))
+        result = combine_attempts(result, second)
     f = result.get("finding")
+    if result["outcome"] == "timed_out":
+        return result
     if china_print_stats(src) and (not f or "product" in f["pending"]):
-        hits = online_edition_hits(src, web, learned)
+        try:
+            hits = online_edition_hits(src, web, learned)
+        except time_budget.Expired as e:
+            return dict(result, fallback=f"stopped: {e}", stopped_by=f"fallback ({e.where})")
         if hits is None:   # 在线版没查成 → 不归档，结果保持原样
             return dict(result, online_search="failed")
         if hits:   # 可能有官方在线版，没核对过 → 不归档，列入手动核对
@@ -795,7 +917,10 @@ def run_check(src: dict, web: Web, learned: dict, max_steps: int = MAX_STEPS, as
                 result["leads"].setdefault(u, {"decision": None, "discovered_via": "search",
                                                "reason": "possible official online edition of this publication — not checked"})
             return result
-        lib = library_finding(web)
+        try:
+            lib = library_finding(web)
+        except time_budget.Expired as e:
+            return dict(result, fallback=f"stopped: {e}", stopped_by=f"fallback ({e.where})")
         if lib:
             if f:
                 lib["notes"].append(f"the agent also found: {f['channel']} at {f['url']} (for another edition)")
@@ -803,9 +928,10 @@ def run_check(src: dict, web: Web, learned: dict, max_steps: int = MAX_STEPS, as
     return result
 
 
-def agent_check(src: dict, web: Web, learned: dict, max_steps: int = MAX_STEPS, ask=ask_model, verbose: bool = False) -> dict:
-    """Agent 循环。返回 {outcome, finding?, steps, discovery}。ask 只在测试时替换。"""
-    task = describe_source(src, learned)
+def agent_check(src: dict, web: Web, learned: dict, max_steps: int = MAX_STEPS, ask=ask_model, verbose: bool = False,
+                prior_notes: str = "") -> dict:
+    """Agent 循环。返回 {outcome, finding?, steps, discovery}。ask 只在测试时替换。prior_notes：重置后第二次查时的记录。"""
+    task = describe_source(src, learned) + (f"\n\n{prior_notes}" if prior_notes else "")
     steps, seen = [], set()
     search_urls, link_urls, official_pages, read_origins = set(), set(), set(), {}
     last_results = None
@@ -818,6 +944,9 @@ def agent_check(src: dict, web: Web, learned: dict, max_steps: int = MAX_STEPS, 
         return {"outcome": outcome, **extra, "steps": steps, "read": read_origins, "leads": leads,
                 "official_sites": sorted(official_sites)}
     for n in range(1, max_steps + 1):
+        r = remaining()
+        if r is not None and r <= 0:
+            return end("timed_out", stopped_by=f"before step {n}")
         history = "\n\n".join(f"Step {s['step']}: {s['action']} {json.dumps(s['args'], ensure_ascii=False)}\n"
                               f"Result: {s['observation'][:MAX_OBSERVATION]}" for s in steps)
         left = max_steps - n + 1
@@ -828,6 +957,8 @@ def agent_check(src: dict, web: Web, learned: dict, max_steps: int = MAX_STEPS, 
             print(f"    step {n}: asking the model…", flush=True)
         try:
             decision, model = ask(SYSTEM_PROMPT, content)
+        except time_budget.Expired as e:
+            return end("timed_out", stopped_by=f"step {n}: {e.where}")
         except (Exception, SystemExit) as e:
             if verbose:
                 print(f"    model call failed: {str(e)[:200]}", flush=True)
@@ -906,6 +1037,9 @@ def agent_check(src: dict, web: Web, learned: dict, max_steps: int = MAX_STEPS, 
                     return end("found", finding=finding)
             else:
                 step["observation"] = f"Error: unknown action {action!r}. Use one of {', '.join(ACTIONS)}."
+        except time_budget.Expired as e:
+            step["observation"] = f"Stopped: {e}."
+            return end("timed_out", stopped_by=f"step {n}: {e.where}")
         except Exception as e:
             step["observation"] = f"Error: the tool failed ({type(e).__name__}: {str(e)[:120]}). Try a different action."
         if action != "submit_finding":
@@ -981,8 +1115,13 @@ def summary_line(src: dict, result: dict) -> str:
         urls = ", ".join(result["leads"])
         return f"{src.get('name')}: official entry found but the page could not be read — please check manually: {urls}"
     if result["outcome"] != "found":
-        why = {"not_found": "no official access route found", "budget_exhausted": "step budget used up before a verified finding",
+        why = {"not_found": "no official access route found", "budget_exhausted": "step budget used up before a verified finding"
+               + ("" if not result.get("attempts") else " (also after one reset)" if result["attempts"][1]["outcome"] == "budget_exhausted"
+                  else f" (a reset was tried but failed: {str(result['attempts'][1].get('reason'))[:80]})"),
                "agent_error": "model call failed", "parse_error": "the model's answer could not be read (invalid JSON twice)",
+               "timed_out": (f"time limit ({(result.get('timing') or {}).get('limit') or TIME_LIMIT} s) reached "
+                             f"({result.get('stopped_by') or 'unknown point'}) before a verified finding — not checked to the end "
+                             "(does not mean unavailable); rerun later"),
                "check_failed": f"the check failed ({result.get('error', 'unknown error')})"}.get(
                    result["outcome"], f"no result ({result['outcome']})")   # 不认识的结果也只影响这一行（以前 parse_error 会抛 KeyError）
         return f"{src.get('name')}: official check — {why}"
