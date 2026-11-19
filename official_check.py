@@ -312,6 +312,13 @@ ACCESS_WORDS = {
 ACCESS_NOT_STATED = "Rejected: the access quote does not say how to obtain the data"
 
 
+# 网站固定文字（浏览器兼容提示、版权、备案号）：不能当下载类渠道的依据。只认这些固定说法，
+# “Data Browser”“可通过浏览器下载”这类正常的获取说明不受影响
+SITE_TEXT = re.compile(r"(?i)(?:建议|推荐)(?:您)?使用.{0,24}浏览器|浏览器.{0,12}(?:兼容|版本|模式|分辨率)|兼容性视图|兼容模式"
+                       r"|\bIE\s?\d+(?:\.\d)?\s*(?:以上|及以上)|分辨率|best viewed|upgrade your browser|browser (?:version|is not supported|"
+                       r"compatib)|enable javascript|版权所有|ICP备|公网安备|all rights reserved")
+
+
 def access_stated(channel: str, quote: str) -> bool:
     """获取原文是否写明了这个渠道的获取方式（下载、申请、购买、订阅、向作者索取）。只做字面检查：
     写了不代表渠道判断一定对（那仍是模型对原文的判断），没写则一定不能下这个结论。"""
@@ -599,6 +606,11 @@ def verify_finding(web: Web, src: dict, decision: dict, learned: dict, linked_fr
     aq = decision.get("access_quote") or ""
     if not quote_in_text(aq, page["text"]):
         return False, "Rejected: the access_quote was not found word-for-word on that page. Copy it exactly from read_page.", None
+    if channel in ("public_download", "registration_download") and SITE_TEXT.search(normalize(aq)):
+        # 2026-11-19：浏览器兼容提示、版权 / 备案等网站固定文字不是获取说明（发布版历史组“工业废水排放标准”曾因
+        # “…360浏览器兼容模式浏览”被判为公开下载：下载用语里有“浏览”）
+        return False, ("Rejected: the access_quote is site text (browser compatibility hint, copyright or registration notice), "
+                       "not a statement of how to obtain the data."), None
     if not access_stated(channel, aq):
         return False, access_gate_message(channel) + ".", None
     notes, pending, cond_note = [], [], None

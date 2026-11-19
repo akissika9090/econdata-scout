@@ -15,7 +15,8 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 DEFAULT = ["test_chain.py", "test_step3.py", "test_final_report.py", "test_v2_fields.py", "test_official.py", "test_fetch.py",
            "test_search.py", "test_scout.py", "test_gemini_client.py", "test_access_catalog.py",
            "test_channel_consistency.py",
-           "test_time_limit.py", "test_time_resources.py", "test_reset.py"]
+           "test_time_limit.py", "test_time_resources.py", "test_reset.py",
+           "test_site_text.py"]
 PAPERS = ["test_final_report_papers.py", "test_step1.py", "test_step2.py", "test_contract.py", "test_phase2.py", "test_agent.py"]
 SKIP_CODE = 77
 
