@@ -396,6 +396,64 @@ def payment_cues(text: str, cues=PAYMENT_CUES) -> list[str]:
     return out[:3]
 
 
+# ---- v1（2026-11-19，本人要求）：渠道改写要有对应条件的依据；否定句（无需购买、不收费、no fee）不算收费 / 审核依据 ----
+NEGATOR_BEFORE = re.compile(r"(?:无需|无须|不需要?|不必|不用|免于?|免除|毋需|不收取?|没有|无)[^，,。；;：:]{0,8}$"
+                            r"|(?i:\b(?:no|without|not|never|free of)\b[^,.;:]{0,25}$)")
+NEGATOR_AFTER = re.compile(r"^[^，,。；;：:]{0,6}(?:不需要|不必|免除|(?i:\s*(?:is|are)?\s*(?:not required|not needed|unnecessary|waived)))")
+CLAUSE_END = re.compile(r"[，,。；;：:!?！？\n]")
+
+
+def cue_hits(text: str, cues) -> list[tuple[int, str, bool]]:
+    """页面上每一处条件词：(位置, 词, 是否被否定)。否定 = 同一分句里紧挨着“无需 / 不 / no / without”等。"""
+    low, out = text.lower(), []
+    for cue in cues:
+        pat = re.escape(cue) if not cue.isascii() else r"\b" + re.escape(cue) + r"\b"
+        for m in re.finditer(pat, low):
+            i = m.start()
+            if cues is REVIEW_CUES and is_menu_hit(text, i, cue):
+                continue
+            before = CLAUSE_END.split(text[max(0, i - 40):i])[-1]
+            after = CLAUSE_END.split(text[m.end():m.end() + 30])[0]
+            out.append((i, cue, bool(NEGATOR_BEFORE.search(before) or NEGATOR_AFTER.search(after))))
+    return sorted(out)
+
+
+def affirmed_cues(text: str, cues=PAYMENT_CUES) -> list[str]:
+    """没有被否定的条件词所在片段（最多 3 处）。“无需购买或订阅，本数据可无偿获取”→ 空。"""
+    out = []
+    for i, cue, neg in cue_hits(text, cues):
+        if not neg:
+            out.append(re.sub(r"\s+", " ", text[max(0, i - 60): i + 60]).strip())
+    return list(dict.fromkeys(out))[:3]
+
+
+FREE_WORDS = re.compile(r"无偿|免费|free of charge|at no (?:cost|charge)|\bfree\b(?! (?:quota|trial|plan|calls?|tier|account))", re.I)
+FREE_NEGATED = re.compile(r"(?:不|非|并非|不是)\s*(?:免费|无偿)|(?i:\bnot\s+(?:free|available free))")
+
+
+def states_free(sentence: str) -> bool:
+    """句子明确写了免费 / 无偿（且没有被否定：“不免费”“not free”不算）。"""
+    return bool(FREE_WORDS.search(sentence or "")) and not FREE_NEGATED.search(sentence or "")
+
+
+# 引文不出现“订阅 / 审核”字样、但写明了同一条件的说法（发布版回归测试 14：CSMAR“享有和学校图书馆相同的数据权限”＝机构订阅）
+SUPPORT_EXTRA = {"payment": ("权限", "会员", "license", "licence", "licensed", "access rights"),
+                 "review": ("申请", "许可", "授权", "apply", "application", "permission")}
+
+
+def condition_support(kind: str, q: str) -> str:
+    """该条件（收费 / 审核）的引文本身是否支持“这份数据需要它”：
+    affirmed = 写了条件且没被否定；negated = 只有被否定的写法（无需购买…）；mixed = 同一句既写免费又写收费（多为不同子产品分别收费）；
+    none = 没写这个条件。"""
+    hits = cue_hits(q, tuple(CONDITION[kind]["cues"]) + SUPPORT_EXTRA[kind])
+    pos = [h for h in hits if not h[2]]
+    if kind == "payment" and pos and states_free(q):
+        return "mixed"
+    if pos:
+        return "affirmed"
+    return "negated" if hits else "none"
+
+
 CONDITION = {
     "payment": {"cues": PAYMENT_CUES, "what": "subscription / purchase",
                 "pending": "whether a subscription or purchase is required for the data used is unclear — please check"},
@@ -451,7 +509,7 @@ def condition_scope(kind: str, decision: dict, text: str, aq: str, channel: str,
     - other_part：原文逐字在页面上，且下载依据本身不提这类条件 → 保留原渠道，注明另一版本需要
     - 其他（看不清、没说明、下载依据本身提到条件）→ 保留入口，标“待核对”，不写成免费渠道的结论"""
     c = CONDITION[kind]
-    found = payment_cues(text, c["cues"])
+    found = affirmed_cues(text, c["cues"])   # v1：只被否定提到（无需购买、不收费）不算页面提到条件，不退回、不追问
     if not found:
         return None, channel, None, False
     scope, q = decision.get(f"{kind}_scope"), (decision.get(f"{kind}_quote") or "").strip()
@@ -466,6 +524,22 @@ def condition_scope(kind: str, decision: dict, text: str, aq: str, channel: str,
     if scope in ("this_data", "other_part") and not (q and quote_in_text(q, text)):
         return f"Rejected: {kind}_quote was not found word-for-word on that page. Copy that sentence exactly.", channel, None, False
     if scope == "this_data":
+        support = condition_support(kind, q)
+        if support != "affirmed":
+            # v1：引文不支持“需要该条件” → 不改渠道。否定句 = 引文本身说不需要；其余情况（没写、同句免费与收费并存）→ 条件待核
+            if support == "negated" and not affirmed_cues(text.replace(q, " "), c["cues"]):
+                return None, channel, (f"the model said {c['what']} applies, but its quote says it is not needed (“{q}”), and the "
+                                       f"page states it nowhere else — {channel} is kept"), False
+            why = {"negated": f"its quote says it is not needed (“{q}”), but the page mentions it elsewhere: {found[0]}",
+                   "mixed": f"its quote states both free access and {c['what']} (“{q}”) — probably different sub-products",
+                   "none": f"its quote does not state {c['what']} (“{q}”)"}[support]
+            return None, channel, (c["pending"] + f"; the model said it applies to this data, but {why}. {channel} is kept "
+                                   "as the verified fact; the condition is pending"), True
+        if kind == "payment" and states_free(aq) and normalize(aq) != normalize(q):
+            # 改写后复查：获取依据明确写免费，收费依据又说这份数据要付费 → 证据矛盾，保留已核实的事实，条件待核
+            return None, channel, (c["pending"] + f"; the access quote says it is free (“{aq}”) but the payment quote says "
+                                   f"{c['what']} is needed (“{q}”) — the evidence conflicts, so {channel} is kept and the "
+                                   "condition is pending"), True
         if kind == "review":
             note = ("registration required; download after review approval" if channel == "registration_download"
                     else "download after review approval")
@@ -474,7 +548,7 @@ def condition_scope(kind: str, decision: dict, text: str, aq: str, channel: str,
             new = "subscription" if any(w in q.lower() for w in SUBSCRIPTION_WORDS) else "purchase"
             note = "institutional subscription required" if new == "subscription" else "paid purchase required"
         return None, new, f"{note} (channel changed from {channel} to {new}): “{q}”", False
-    if scope == "other_part" and not payment_cues(aq, c["cues"]):
+    if scope == "other_part" and not affirmed_cues(aq, c["cues"]):
         # 2026-11-17 回归（WWO）后的规则：保留免费渠道要说清“另一部分”是什么，并给出免费说明对应论文所用数据的依据
         other = (decision.get("other_part_name") or "").strip()
         ev = (decision.get("scope_evidence") or "").strip()
@@ -524,7 +598,7 @@ def verify_finding(web: Web, src: dict, decision: dict, learned: dict, linked_fr
     if not access_stated(channel, aq):
         return False, access_gate_message(channel) + ".", None
     notes, pending, cond_note = [], [], None
-    if channel in FREE_CHANNELS and GENERIC_FREE.search(aq) and not payment_cues(page["text"]):
+    if channel in FREE_CHANNELS and GENERIC_FREE.search(aq) and not affirmed_cues(page["text"]):
         ev = (decision.get("scope_evidence") or "").strip()
         if not (scope_evidence_ok(ev, page) and FREE_CUE.search(ev) and not NOT_FREE.search(ev) and normalize(ev) != normalize(aq)):
             notes.append(f"the access quote is a site-wide free quota (“{aq}”); whether the product the paper used is included "
