@@ -38,6 +38,22 @@ import step3_merge as step3
 ANALYSIS_LABELS = {"extract_failed": "the AI extraction failed (e.g. all Gemini models were busy) - run again later"}
 
 
+def pdf_title(path: str) -> str | None:
+    """上传的 PDF 的论文标题（2026-11-23）：取 PDF 元数据里的标题（出版社的 PDF 一般都有，如 Elsevier）。
+    没有、太短或像文件名 / 软件默认值时返回 None，调用方退回到文件名。"""
+    try:
+        import html
+        import pymupdf
+        with pymupdf.open(path) as doc:
+            title = html.unescape((doc.metadata or {}).get("title") or "")
+    except Exception:
+        return None
+    title = " ".join(title.split())
+    if len(title) < 10 or len(title.split()) < 3 or re.search(r"(?i)^(?:microsoft|untitled)|\.(?:pdf|docx?|tex)$", title):
+        return None
+    return title
+
+
 def paper_label(paper: dict, used: set) -> str:
     """报告里用的论文简称：第一作者姓 + 年份（如 Meyer1981）；重名时加 a、b。"""
     first = (paper.get("authors") or ["Unknown"])[0].split()[-1]
@@ -181,7 +197,9 @@ def run(topic: str | None, use_agent: bool = False, extra_pdfs: list[str] | None
             while name.lower().endswith(".pdf"):
                 name = name[:-4]
             label = paper_label({"authors": [name], "year": ""}, used)
-            paper = {"id": label, "title": os.path.basename(path), "label": label,
+            meta_title = pdf_title(path)
+            paper = {"id": label, "title": meta_title or os.path.basename(path), "label": label,
+                     "title_source": "PDF metadata" if meta_title else "file name",
                      "origin": "uploaded by the user", "version_note": uploaded_note}
             papers.append(paper)
         dest = os.path.join(run_dir, "pdfs", f"{paper['label']}_upload.pdf")
@@ -234,7 +252,10 @@ def run(topic: str | None, use_agent: bool = False, extra_pdfs: list[str] | None
     try:
         from access_catalog import render_table_ja
         with open(os.path.join(run_dir, "access_table_ja.md"), "w", encoding="utf-8") as f:
-            f.write(render_table_ja(reports))
+            # 论文列显示论文标题（文件名不算标题：没有元数据标题的上传 PDF 仍显示简称）
+            titles = {p["label"]: p["title"] for p in papers
+                      if p.get("title") and p.get("title_source") != "file name" and not p["title"].lower().endswith(".pdf")}
+            f.write(render_table_ja(reports, titles=titles))
         print(f"Access table (catalog) saved to {os.path.join(run_dir, 'access_table_ja.md')}")
     except Exception as e:
         print(f"  ✗ access table failed: {type(e).__name__}: {str(e)[:200]}")

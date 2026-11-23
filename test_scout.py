@@ -158,6 +158,24 @@ try:
               len(rec_pdf["papers"]) == 1 and rec_pdf["papers"][0]["analysis"]["status"] == "extracted"
               and "uploaded PDFs only" in rep_pdf and os.path.exists(os.path.join(d, "run_pdf", "access_table_ja.md"))
               and not os.path.exists(os.path.join(d, "run_pdf", "candidates.json")))
+        # 论文标题（2026-11-23）：上传的 PDF 取元数据标题，获取表“論文”列显示标题；没有元数据标题时仍显示简称
+        doc = pymupdf.open(stream=make_pdf("Minimum wages and teen employment"), filetype="pdf")
+        doc.set_metadata({"title": "Minimum wages and teenagers&#x2019; employment: Evidence from US states"})
+        up_t = os.path.join(d, "Minimum-wages-and-teen_2022_Some-Journal.pdf")
+        doc.save(up_t); doc.close()
+        check("论文标题：取 PDF 元数据标题并解码 HTML 转义；没有元数据、像文件名或太短 → None",
+              scout.pdf_title(up_t) == "Minimum wages and teenagers’ employment: Evidence from US states"
+              and scout.pdf_title(up) is None)
+        calls["n"] = 15
+        rec_t = scout.run(None, run_dir=os.path.join(d, "run_title"), extra_pdfs=[up_t], search=no_search, get=fake_get)
+        tbl = open(os.path.join(d, "run_title", "access_table_ja.md"), encoding="utf-8").read()
+        rep_t = open(rec_t["report"], encoding="utf-8").read()
+        tbl_pdf = open(os.path.join(d, "run_pdf", "access_table_ja.md"), encoding="utf-8").read()
+        check("论文标题：获取表和报告显示论文标题，不显示文件名拼出的简称；没有元数据标题的论文仍显示简称",
+              "| Minimum wages and teenagers’ employment: Evidence from US states |" in tbl
+              and "Minimumwagesandteen" not in tbl and "Minimum wages and teenagers’ employment" in rep_t
+              and rec_t["papers"][0]["title_source"] == "PDF metadata"
+              and "| " + rec_pdf["papers"][0]["label"] + " |" in tbl_pdf)
         # 上传的 PDF 和检索结果配对（2026-11-18：以前上传后报告末尾仍列为“未分析”）
         up_b = os.path.join(d, "Another.pdf.pdf")
         open(up_b, "wb").write(make_pdf("Another Minimum Wage Study of Teenage Workers"))

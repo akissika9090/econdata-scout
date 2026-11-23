@@ -219,8 +219,9 @@ def row_ja(label: str, src: dict) -> list[str]:
     return [label, used, verdict, entry, ja.get("next_step"), ja.get("still_check")]
 
 
-def render_table_ja(reports: list[tuple[str, dict]], main_only: bool = True) -> str:
-    """reports = [(論文ラベル, step2/step3 のレポート)]。主要データ（role=main）を 1 行ずつ表にする。"""
+def render_table_ja(reports: list[tuple[str, dict]], main_only: bool = True, titles: dict | None = None) -> str:
+    """reports = [(論文ラベル, step2/step3 のレポート)]。主要データ（role=main）を 1 行ずつ表にする。
+    titles = {論文ラベル: 論文タイトル}：あれば「論文」列にタイトルを出す（2026-11-23）。"""
     lines = ["# データ入手経路（中国経済データ・カタログ照合）", "",
              "読み方：「結論」はそのデータを手に入れるための条件と理由（📖 既知の経路 / 🔐 制限あり / ⛔ 公開なし / ✅ 確認済み）。"
              "「次にやること」は誰に何を確認するか。論文が使った版・年が入っているかは「未確認の条件」に書く。"
@@ -230,5 +231,5 @@ def render_table_ja(reports: list[tuple[str, dict]], main_only: bool = True) -> 
         for src in (rep or {}).get("data_sources", []):
             if main_only and src.get("role") != "main":
                 continue
-            lines.append("| " + " | ".join(_cell(x) for x in row_ja(label, src)) + " |")
+            lines.append("| " + " | ".join(_cell(x) for x in row_ja((titles or {}).get(label) or label, src)) + " |")
     return "\n".join(lines) + "\n"
