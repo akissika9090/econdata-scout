@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EconData Scout</title>
+<meta name="description" content="経済学の論文が使ったデータを原文とページで特定し、その入手条件と次にやることを日本語で示すツール。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE work: a reference librarian's answer, calm and exact
+   IDEA the reference-desk answer slip: question (the paper), evidence (page and quote), answer (conditions), what to do next
+   PICTURE one route across the first screen: paper sentence → data → access condition → next step, for the CSMAR example
+   COLOUR stone ground, black ink, white slips, brick red only for conditions and the route
+   TYPE Schibsted Grotesk for Latin + Zen Kaku Gothic New for Japanese
+   LAYOUT laptop: title across the top, route full width beneath; phone: title, then the route as a vertical line */
+:root{color-scheme:light dark;--bg:light-dark(#e7e4df,#171513);--ink:light-dark(#111,#eeeae4);--soft:light-dark(#4a4641,#b9b3aa);--panel:light-dark(#fff,#221f1c);--rule:light-dark(#111,#eeeae4);--line:light-dark(#cfcac2,#3a3531);--brick:light-dark(#c8371e,#ff6a4d)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html{scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.75 "Schibsted Grotesk","Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif;overflow-x:clip}
+a{color:inherit;text-decoration-color:var(--brick);text-underline-offset:3px;overflow-wrap:anywhere}
+a:focus-visible{outline:3px solid var(--brick);outline-offset:2px}
+.wrap{max-width:1240px;margin:0 auto}
+.band{padding-block:clamp(32px,5vw,72px);padding-left:max(5vw,16px);padding-right:max(5vw,16px)}
+nav.top{border-bottom:3px solid var(--rule);padding:12px max(5vw,16px)}
+nav.top .wrap{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:baseline;justify-content:space-between}
+.brand{font-weight:700;font-size:18px;letter-spacing:-.01em}
+nav.top ul{display:flex;flex-wrap:wrap;gap:4px 20px;margin:0;padding:0;list-style:none;font-size:15px}
+nav.top a{text-decoration:none;display:inline-block;padding:6px 0}
+nav.top a:hover{text-decoration:underline}
+h1{font-size:clamp(32px,4.6vw,50px);line-height:1.15;letter-spacing:-.02em;margin:0 0 16px;text-wrap:balance;font-weight:700}
+.lead{font-size:17px;max-width:44em;color:var(--soft);margin:0}
+.lead strong{color:var(--ink)}
+.route{list-style:none;margin:clamp(28px,4vw,48px) 0 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));position:relative;counter-reset:st}
+.route::before{content:"";position:absolute;left:12px;right:12px;top:15px;height:4px;background:var(--brick)}
+.route li{position:relative;padding:44px 18px 0 0;counter-increment:st}
+.route li::before{content:"";position:absolute;left:0;top:4px;width:26px;height:26px;border-radius:50%;background:var(--bg);border:4px solid var(--brick)}
+.route li:last-child::before{background:var(--brick)}
+.route .k{display:block;font-size:14px;color:var(--soft);font-weight:500}
+.route .v{display:block;font-size:clamp(17px,1.6vw,21px);font-weight:700;line-height:1.45;margin-top:4px}
+.route-note{margin:20px 0 0;font-size:14px;color:var(--soft)}
+h2{font-size:clamp(26px,3vw,34px);line-height:1.2;letter-spacing:-.015em;margin:0 0 8px;font-weight:700}
+.sec-lead{margin:0 0 28px;color:var(--soft);max-width:46em}
+.examples{border-top:3px solid var(--rule)}
+.slips{display:grid;gap:24px;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));align-items:start}
+.slip{background:var(--panel);border:1px solid var(--line);padding:22px 22px 16px;display:flex;flex-direction:column;gap:14px}
+.slip header{border-bottom:2px solid var(--rule);padding-bottom:12px}
+.how{font-size:13px;color:var(--brick);font-weight:700}
+.slip h3{font-size:22px;line-height:1.3;margin:4px 0 6px;letter-spacing:-.01em}
+.paper{margin:0;font-size:14px;color:var(--soft);line-height:1.55}
+.evid{font-size:15px}
+.pg{display:inline-block;font-weight:700;border:1.5px solid var(--ink);padding:0 7px;margin-right:6px;font-size:13px;white-space:nowrap}
+blockquote{margin:8px 0 0;padding:0 0 0 12px;border-left:3px solid var(--line);font-size:15px;line-height:1.6}
+.slip table{border-collapse:collapse;width:100%;font-size:15px}
+.slip th,.slip td{display:block;text-align:left;padding:0}
+.slip th{font-size:13px;color:var(--soft);font-weight:500;padding-top:10px;border-top:1px solid var(--line);margin-top:10px}
+.slip tr:first-child th{border-top:0;margin-top:0;padding-top:0}
+.slip td{padding-top:2px;line-height:1.65}
+.slip td strong{color:var(--brick);font-weight:700}
+.tr{display:block;margin-top:6px;color:var(--soft);font-size:14px;line-height:1.6}
+.tr small{display:block;font-size:13px}
+.slip footer{font-size:13px;color:var(--soft);border-top:1px solid var(--line);padding-top:10px;line-height:1.6}
+.how-to{border-top:3px solid var(--rule)}
+.modes{display:grid;gap:24px;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))}
+.mode h3{font-size:20px;margin:0 0 6px}
+.mode p{margin:0 0 12px}
+pre{overflow-x:auto;background:var(--panel);border:1px solid var(--line);padding:14px 16px;margin:0 0 10px;font:14px/1.6 ui-monospace,"SFMono-Regular",Menlo,monospace}
+.mode ol{margin:0;padding-left:1.3em}
+.mode li{margin-bottom:4px}
+.rules{border-top:3px solid var(--rule)}
+.rule-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:0 32px;margin:0;padding:0;list-style:none}
+.rule-list li{border-top:1px solid var(--rule);padding:14px 0 18px}
+.rule-list b{display:block;font-size:18px;line-height:1.4;margin-bottom:4px}
+.rule-list span{color:var(--soft);font-size:15px}
+.eval{border-top:3px solid var(--rule);background:var(--panel)}
+.eval .wrap{display:grid;gap:16px 40px;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));align-items:start}
+.eval p{margin:0}
+.links{list-style:none;margin:0;padding:0}
+.links li{border-top:1px solid var(--line);padding:10px 0}
+.links a{font-weight:700}
+footer.site{border-top:3px solid var(--rule);padding:24px max(5vw,16px) 40px;font-size:14px;color:var(--soft)}
+footer.site p{margin:0 0 6px}
+@media(max-width:760px){
+.route{grid-template-columns:minmax(0,1fr)}
+.route::before{left:13px;right:auto;top:12px;bottom:12px;width:4px;height:auto}
+.route li{padding:0 0 22px 46px}
+.route li::before{top:2px}
+}
+@media(prefers-reduced-motion:no-preference){.route li:last-child::before{animation:arrive 1.6s ease-out .3s both}@keyframes arrive{from{background:var(--bg)}to{background:var(--brick)}}}
+</style>
+</head>
+<body>
+<nav class="top" aria-label="ページ内"><div class="wrap"><span class="brand">EconData Scout</span>
+<ul><li><a href="#examples">代表例</a></li><li><a href="#how">使い方</a></li><li><a href="#rules">設計の方針</a></li><li><a href="#eval">評価と既知の制限</a></li></ul></div></nav>
+
+<main>
+<section class="band"><div class="wrap">
+<h1>論文が使ったデータと、その入手条件を調べる</h1>
+<p class="lead">研究テーマを決める前の大学院生向けのツールです。経済学の論文 PDF から、著者が分析に使った主要データを<strong>原文の引用とページ</strong>で特定し、そのデータを手に入れるための<strong>条件と、次に誰に何を確認するか</strong>を日本語の表で示します。</p>
+<ol class="route" aria-label="代表例 1 の流れ"><li><span class="k">論文の記述</span><span class="v">p.4「We obtain corporate financial data from CSMAR.」</span></li><li><span class="k">論文が使ったデータ</span><span class="v">CSMAR</span></li><li><span class="k">入手の条件</span><span class="v">機関契約による制限</span></li><li><span class="k">次にやること</span><span class="v">本校図書館に、必要なサブデータベースと年が契約に含まれているか確認する</span></li></ol>
+<p class="route-note">代表例 1（CSMAR）の流れ。論文の 1 文から、学生が次にとる行動までを 1 本の線でつなぎます。</p>
+</div></section>
+
+<section class="band examples" id="examples"><div class="wrap">
+<h2>代表例</h2>
+<p class="sec-lead">ツールの実際の出力から選んだ 3 件です。文言は保存された実行結果のままで、各カードに出典ファイルを記しています。入手の条件はそれぞれ違います（機関契約、申請と現地利用、登録後のダウンロード）。</p>
+<div class="slips"><article class="slip" id="ex1"><header><span class="how">カタログ照合（中国経済データ 9 種）</span><h3>CSMAR</h3><p class="paper">Vertical integration and corporate value under uncertainty shock: Evidence from the COVID-19 pandemic</p></header><div class="evid"><span class="pg">p.4</span><blockquote>“We obtain corporate financial data from CSMAR.”</blockquote></div><table><tr><th scope="row">結論（入手の条件と理由）</th><td><strong>🔐 機関契約による制限：商用データベース、大学図書館の契約が必要</strong></td></tr><tr><th scope="row">入口</th><td>CSMAR 公式サイト：<a href="https://data.csmar.com/">https://data.csmar.com/</a></td></tr><tr><th scope="row">次にやること</th><td>本校図書館に、必要なサブデータベースと年が契約に含まれているか確認する。大学が WRDS を契約している場合は、WRDS の権限に CSMAR の該当サブデータベースが含まれるかも確認する</td></tr><tr><th scope="row">未確認の条件</th><td>論文が使ったサブデータベースと年が本校の契約に含まれるか</td></tr></table><footer>出典：<a href="https://github.com/akissika9090/econdata-scout/blob/main/demo/outputs/access_table_ja.md">demo/outputs/access_table_ja.md</a>　2026-11-18 の抽出（第 3・4 号 13 本）・凍結版カタログ・ツールの出力を加工せずに掲載</footer></article><article class="slip" id="ex2"><header><span class="how">カタログ照合（中国経済データ 9 種）</span><h3>China Industrial Enterprise Database</h3><p class="paper">On foreign-invested enterprises’ exit: Economic development or labor market price regulation?</p></header><div class="evid"><span class="pg">p.5</span>（2001–2009）</div><table><tr><th scope="row">結論（入手の条件と理由）</th><td><strong>🔐 既知の経路は制限あり：統計局ラボは機関登録・申請承認後の現地利用（2021 年の公式 Q&amp;A による）</strong></td></tr><tr><th scope="row">入口</th><td>申請手順の参考（2021 年公式 Q&amp;A）：<a href="https://www.stats.gov.cn/zt_18555/zthd/lhfw/2022/rdwt/202302/t20230214_1903570.html">https://www.stats.gov.cn/zt_18555/zthd/lhfw/2022/rdwt/202302/t20230214_1903570.html</a></td></tr><tr><th scope="row">次にやること</th><td>論文が使ったデータセットと年を確認し、所属大学が統計局のホワイトリストに入っているか研究支援部門や図書館に問い合わせる</td></tr><tr><th scope="row">未確認の条件</th><td>論文が使った年がラボで提供されているか。現行の申請入口が有効か</td></tr></table><footer>出典：<a href="https://github.com/akissika9090/econdata-scout/blob/main/demo/outputs/access_table_ja.md">demo/outputs/access_table_ja.md</a>　2026-11-18 の抽出（第 3・4 号 13 本）・凍結版カタログ・ツールの出力を加工せずに掲載</footer></article><article class="slip" id="ex3"><header><span class="how">公式サイト確認エージェント（--official）</span><h3>Online transcripts of judicial decisions</h3><p class="paper">Air pollution lowers high skill public sector worker productivity in China</p></header><div class="evid"><span class="pg">p.4</span>（2014–2017）<blockquote>“Our main data source is online transcripts of judicial decisions. ...”</blockquote></div><table><tr><th scope="row">結論（入手の条件と理由）</th><td><strong>✅ 公式サイトで確認：登録後に無料でダウンロード</strong></td></tr><tr><th scope="row">公式サイトの記載（原文）</th><td><span lang="zh">“登录的用户，在列表页点击 “下载”按钮、在全文页点击、在个人中心-我的收藏-案例包-文书列表页中点击，可以实现裁判文书下载。”</span><span class="tr" lang="en">Logged-in users can download judgment documents by clicking the “Download” button on the list page, on the full-text page, or on the document list page under Personal Center &gt; My Favorites &gt; Case Packages.<small>英語の参考訳（ツールの出力ではありません）</small></span></td></tr><tr><th scope="row">入口</th><td><a href="https://wenshu.court.gov.cn/website/wenshu/181109AWZA70BFK4/index.html">https://wenshu.court.gov.cn/website/wenshu/181109AWZA70BFK4/index.html</a>（2026-11-18 に確認）</td></tr><tr><th scope="row">未確認の条件</th><td>論文が使った年（2014–2017）が含まれるか：公式サイトの文面には年の記載がない</td></tr></table><footer>出典：<a href="https://github.com/akissika9090/econdata-scout/blob/main/demo/outputs/official.md">demo/outputs/official.md</a>　2026-11-18 の実行（--official、公式サイト確認）・英語の出力（free download after registration）を日本語の項目名で掲載、引用は原文のまま</footer></article></div>
+</div></section>
+
+<section class="band how-to" id="how"><div class="wrap">
+<h2>使い方</h2>
+<p class="sec-lead">同じツールに入口が 2 つあります。</p>
+<div class="modes">
+<div class="mode"><h3>1. 論文がすでにある場合</h3>
+<p>論文 PDF（またはフォルダ）を渡すと、検索はせず、その論文だけを分析します。</p>
+<pre>python scout.py --pdf paper.pdf</pre>
+<p>出力：英語のレポート（使ったデータ、原文の引用とページ、サンプル年）と、日本語の入手経路表。中国の経済データ 9 種はカタログで照合し、それ以外は <code>--official</code> で公式サイトを確認できます。</p></div>
+<div class="mode"><h3>2. 研究方向から始める場合</h3>
+<ol><li>研究方向（英語）を入力し、候補論文の一覧と入手先を日本語で受け取る</li>
+<li>一覧を見て、自分で論文を選んでダウンロードする</li>
+<li>使い方 1 でアップロードする</li></ol>
+<pre>python scout.py "the effect of minimum wage on employment in China" --search-only</pre>
+<p>候補論文の関連度はモデルの判断なので、選ぶのは学生です。</p></div>
+</div>
+</div></section>
+
+<section class="band rules" id="rules"><div class="wrap">
+<h2>設計の方針</h2>
+<p class="sec-lead">「入手できる」と言い過ぎないことを優先しています。</p>
+<ul class="rule-list">
+<li><b>結論は証拠を超えない</b><span>論文や公式サイトの文を逐字で照合し、その文が述べていることだけを結論にします。</span></li>
+<li><b>制限と確認の程度を分ける</b><span>「機関の資格が必要」は、それ自体がテーマ選びに役立つ結論です。どこまで確認できたかは別に書きます。</span></li>
+<li><b>名前が一般的なほど、身元の証拠を求める</b><span>「人口センサス」のような名前だけでは、どの国・どの機関のデータかを決めません。</span></li>
+<li><b>未確認は未確認と書く</b><span>論文が使った年や版が入手先に含まれるかは、「未確認の条件」として残します。</span></li>
+</ul>
+</div></section>
+
+<section class="band eval" id="eval"><div class="wrap">
+<div><h2>評価と既知の制限</h2>
+<p>テスト用の論文は、雑誌の目次順に機械的に選び、正解ラベルを実行前に固定して評価しました。うまくいかなかった例や数値の内訳は、リポジトリの文書にまとめています。</p></div>
+<ul class="links">
+<li><a href="https://github.com/akissika9090/econdata-scout/blob/main/README.ja.md#評価使い方-1論文を渡したあとのデータ抽出とカタログ照合">評価（README）</a></li>
+<li><a href="https://github.com/akissika9090/econdata-scout/blob/main/docs/access_catalog_ja.md">入手経路カタログの設計と評価</a></li>
+<li><a href="https://github.com/akissika9090/econdata-scout/blob/main/README.ja.md#既知の制限">既知の制限</a></li>
+</ul>
+</div></section>
+</main>
+
+<footer class="site"><div class="wrap">
+<p>EconData Scout は個人のポートフォリオ作品です（MIT ライセンス、作者 XU）。研究用の最終判断には、必ず提供元の最新情報を確認してください。</p>
+<p>代表例の論文はオープンアクセス（CC BY-NC-ND）または公開済みの論文で、掲載しているのは短い引用とページ番号だけです。</p>
+</div></footer>
+</body>
+</html>
