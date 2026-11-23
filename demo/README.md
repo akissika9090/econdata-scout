@@ -54,4 +54,4 @@ This mode re-runs verification and report generation with the code in this repos
 
 - `review`: the model missed several data sources in Liebman 1998 (the restricted CPS–tax-return matched file, the 1988 IRS non-filer study, the March CPS 1985–1997 and 1993). These are known limitations.
 - `fallback`: the data-source section of that run is deliberately not shown. That run used an older prompt without a usage-relation field, and its report lists data from Dell et al. as used by Bowen 2011, although the paper only cites it. With the current prompt the same paper is handled correctly. The historical result was not edited.
-- Two fallback paths have no real saved occurrence, so they are covered only by offline tests (`test_scout.py` in the default suite; `test_agent.py` in the optional paper suite): an extraction failure (all models busy) and an Agent error.
+- Two fallback paths have no real saved occurrence, so they are covered only by offline tests (`test_scout.py` for the extraction failure; the Agent error is tested only in the author's development copy, which is not distributed): an extraction failure (all models busy) and an Agent error.

@@ -22,21 +22,21 @@ def src(name, quote="", provider=None, kind="dataset"):
 # 每组里的说法都来自真实论文，应该得到同一个键
 SAME = [
     ("城市统计年鉴", [
-        src("China City Statistical Yearbook", "The control variables at the city level are collected from the China City Statistical Yearbook."),
-        src("City Statistical Yearbooks", "We collect city characteristics, such as population and GDP, from the City Statistical Yearbooks."),
-        src("China City Statistical Yearbook", "City-level data is obtained from the China City Statistical Yearbook (2014–2023)."),
+        src("China City Statistical Yearbook", "City-level controls are taken from the China City Statistical Yearbook."),
+        src("City Statistical Yearbooks", "City characteristics such as population and GDP come from the City Statistical Yearbooks."),
+        src("China City Statistical Yearbook", "City-level variables come from the China City Statistical Yearbook (2014–2023)."),
     ]),
     ("能源统计年鉴", [
-        src("China Energy Statistical Yearbook", "The energy consumption data are from the China Energy Statistical Yearbook."),
-        src("Energy Statistical Yearbooks", "plant-level electricity generation from China's Electric Power Yearbooks and Energy Statistical Yearbooks."),
+        src("China Energy Statistical Yearbook", "Energy use figures are taken from the China Energy Statistical Yearbook."),
+        src("Energy Statistical Yearbooks", "plant-level power output, taken from the Energy Statistical Yearbooks and the Electric Power Yearbooks of China."),
     ]),
     ("CFPS", [
-        src("China Family Panel Studies", "Household-level data is from China Family Panel Studies (CFPS) in 2014 and 2016"),
-        src("China Household Panel Survey 2016 (CFPS)", "The data source is the China Household Panel Survey 2016 (CFPS)."),
+        src("China Family Panel Studies", "Household variables come from China Family Panel Studies (CFPS), waves 2014 and 2016"),
+        src("China Household Panel Survey 2016 (CFPS)", "Our source is the China Household Panel Survey 2016 (CFPS) as released."),
     ]),
     ("UHS", [
-        src("Urban Household Survey", "Our data come from the Urban Household Survey (UHS) since 1986"),
-        src("Urban Household Survey data", "As a robustness check, we also use Urban Household Survey data"),
+        src("Urban Household Survey", "We use Urban Household Survey (UHS) data starting in 1986"),
+        src("Urban Household Survey data", "For robustness, Urban Household Survey data are used as well"),
     ]),
 ]
 
@@ -46,11 +46,11 @@ DIFFERENT = [
      src("China City Statistical Yearbook", "from the China City Statistical Yearbook."),
      src("China Energy Statistical Yearbook", "from the China Energy Statistical Yearbook.")),
     ("国家统计局的空调数据 vs 国家统计局的 UHS（同一机构，不同数据）",
-     src("AC data", "The AC data come from the National Bureau of Statistics (NBS) of China", provider="NBS"),
+     src("AC data", "We take the AC data from the National Bureau of Statistics (NBS) of China", provider="NBS"),
      src("Urban Household Survey", "Our data come from the Urban Household Survey (UHS) conducted by the National Bureau of Statistics")),
     ("CSMAR vs Wind（同为付费数据库）",
      src("CSMAR database", "green subsidy data are derived from the CSMAR database"),
-     src("WIND database", "employee data are derived from the WIND database")),
+     src("WIND database", "employee figures are taken from the WIND database")),
 ]
 
 
@@ -178,10 +178,10 @@ def run_census_country() -> bool:
     print("\n人口普查：跨国误合并的防护")
     china = "Population census / 1% population sample survey"   # 2026-11-06：清单名称改为英文
     # 基线中真实出现过的中国人口普查说法：收紧后仍要认出来
-    cn = [src("2015 Population Census of China", "We measure internal migration using the 2015 Population Census of China."),
-          src("population census in China", "We use population and death counts from the population census in China to calculate two measures of migration.",
+    cn = [src("2015 Population Census of China", "Internal migration is measured with the 2015 Population Census of China."),
+          src("population census in China", "Two migration measures are computed from population and death counts in the population census in China.",
               provider="National Bureau of Statistics (NBS) of China"),
-          src("population census in China", "we use 1% and 20% individual-level data randomly drawn from the 2000 and 2005 censuses respectively",
+          src("population census in China", "the individual-level samples are random 1% and 20% draws from the 2000 and 2005 censuses respectively",
               provider="National Bureau of Statistics (NBS) of China")]
     us = [src("2010 U.S. Census", "County population comes from the 2010 U.S. Census."),
           src("Decennial Census", "Tract characteristics are from the 2000 Decennial Census of the United States."),
@@ -193,7 +193,7 @@ def run_census_country() -> bool:
     cases += [("中国的三种说法合并为一组", len(keys_cn) == 1),
               ("美国、印尼的普查和中国的普查不在同一组", all(step3.canonical_key(x)[0] not in keys_cn for x in us)),
               ("没写国家（“the 2010 Population Census”）→ 不认定为中国普查，宁可分开（基线 li2015 因此失去提示）",
-               hint(src("Population data", "Population data are obtained from the 2010 Population Census.")) != china)]
+               hint(src("Population data", "Population figures come from the 2010 Population Census.")) != china)]
     for name, ok in cases:
         ok_all &= ok
         print(f"  {'✓' if ok else '✗'}  {name}")
@@ -218,7 +218,7 @@ def run_merge_choices() -> bool:
     cases.append(("证据一样强时保留先出现的那条（结果稳定，不随机）", kept[0]["src"]["name"] == "first"))
 
     src = {"name": "Urban Household Survey (UHS)", "source_evidence": {"quote": "Our data come from the UHS", "page": 3},
-           "access_evidence": {"quote": "we can only get the data from 2002 to 2009", "page": 3, "verified": True}}
+           "access_evidence": {"quote": "the data are only available to us for 2002 to 2009", "page": 3, "verified": True}}
     lims = [{"quote": "UHS data for 2010 are missing for most cities", "page": 7},    # 点名了 UHS
             {"quote": "Weather records before 2000 are incomplete", "page": 5},       # 别的数据、别的页
             {"quote": "Some counties are dropped because of missing values", "page": 3}]  # 同一页
@@ -228,10 +228,10 @@ def run_merge_choices() -> bool:
     cases += [("点名了这个数据的限制 → 也不自动归到它（留在论文级）", lims[0]["quote"] not in quotes),
               ("只是和来源说明同一页、没点名 → 不归到它（2026-11-06 起，同页不能证明归属）", lims[2]["quote"] not in quotes),
               ("别的数据、别的页 → 不归到它", lims[1]["quote"] not in quotes),
-              ("获取条件证据含“only … 年份”、但证据未确认针对这个数据 → 不归到它", "we can only get the data from 2002 to 2009" not in quotes)]
+              ("获取条件证据含“only … 年份”、但证据未确认针对这个数据 → 不归到它", "the data are only available to us for 2002 to 2009" not in quotes)]
     rel2 = step3.related_limitations({**src, "verification": "verified"}, lims)
     cases.append(("获取条件证据已确认针对这个数据、且含“only … 年份” → 算作它的覆盖限制",
-                  "we can only get the data from 2002 to 2009" in [x["quote"] for x in rel2]))
+                  "the data are only available to us for 2002 to 2009" in [x["quote"] for x in rel2]))
     for name, ok in cases:
         ok_all &= ok
         print(f"  {'✓' if ok else '✗'}  {name}")

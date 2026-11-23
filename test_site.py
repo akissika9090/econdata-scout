@@ -1,6 +1,6 @@
 """V3 展示ページのテスト（2026-11-23）。API・ネットワーク不要。
 ① 代表例の文言が保存済みの実行結果（demo/outputs/）にそのまま存在する（ツールの出力を加工していない）
-② site/index.html が build_site.py の出力と一致する（ページを手で書き換えていない）
+② docs/index.html（GitHub Pages で公開するページ）が build_site.py の出力と一致する（ページを手で書き換えていない）
 ③ ページに評価の数字を載せていない（本人の方針：評価はリポジトリの文書へリンク）
     python3 test_site.py"""
 import os, re, sys
@@ -23,11 +23,12 @@ built = bs.page(exs)
 check("公式サイトの原文はそのまま残し、英語の参考訳はツールの出力ではないと明記して添える",
       exs[2]["access_quote"] in bs.REFERENCE_EN and "英語の参考訳（ツールの出力ではありません）" in built
       and bs.html.escape(exs[2]["access_quote"]) in built)
-current = open(os.path.join(ROOT, "site", "index.html"), encoding="utf-8").read()
-check("② site/index.html は build_site.py の出力と一致（python3 site/build_site.py で再生成）", built == current)
+current = open(os.path.join(ROOT, "docs", "index.html"), encoding="utf-8").read()
+check("② docs/index.html は build_site.py の出力と一致（python3 site/build_site.py で再生成）", built == current)
 text = re.sub(r"<[^>]+>", " ", built)
 check("③ 評価の数字（○/○ 件・達成・誤り○件）をページに載せていない", not re.search(r"\d+\s*/\s*\d+|達成|誤り\s*\d", text),
       re.findall(r".{0,20}(?:\d+\s*/\s*\d+|達成|誤り\s*\d).{0,20}", text)[:3])
+check("site/index.html（旧位置）が残っていない", not os.path.exists(os.path.join(ROOT, "site", "index.html")))
 check("ページの <title> と、評価文書へのリンクがある", "<title>EconData Scout</title>" in built and "docs/access_catalog_ja.md" in built)
 print("\n全部通过" if not fails else f"\n{fails} 项失败")
 sys.exit(1 if fails else 0)

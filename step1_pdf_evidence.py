@@ -24,7 +24,7 @@ DATA_KEYWORDS = [
     "come from", "comes from", "conducted by", "drawn from",
 ]
 # “某某数据来自某处”这种句式，是数据来源最直接的信号，出现在任何章节都应该被找到
-# （例：Teng 2026 第5章 “Data on residential electricity use are from the China Electricity Council”）
+# （例：Teng 2026 第5章 “Household electricity consumption figures come from the China Electricity Council”）
 SOURCE_SENTENCE = re.compile(
     r"\b(data|dataset|statistics|information)\b[^.]{0,80}?\b(are|is|were|was|come|comes|came)\s+"
     r"(mainly |primarily |largely )?(obtained |collected |drawn |taken |derived )?from\b"
@@ -245,7 +245,7 @@ def find_data_passages(blocks: list[list[tuple[str, float]]], min_score: int = 4
             score, hits = score_passage(passage)
             in_section = data_section_number is not None
             # 太短的块（页码、图注、表格碎片）通常跳过。但数据章节里的短句如果含相关词也要保留：
-            # 数据声明经常只有一句话，如 'Further information about the data is available upon a reasonable request.'
+            # 数据声明经常只有一句话，如 'Data can be obtained from the authors on request.'
             if len(passage) < 30 or (len(passage) < 80 and not (in_section and score >= 1)):
                 continue
             # 安全上限：无编号的数据章节（如 Data Availability Statement）最多收 8 段，

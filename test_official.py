@@ -552,8 +552,8 @@ check("20. 【验收】CHNS：第一次依据是转述 → 退回；改成逐字
 # ---- 21. 产品与时效：历史基线不能替代未来预测；历史售价只能写成发行时的条件；导航栏不触发审核 ----
 WC = {"name": "WorldClim-Global Climate Data", "provider": "WorldClim", "version": None, "version_verified": None,
       "sample_period": None, "urls": [], "access_category": "unknown",
-      "source_evidence": {"quote": "To project the cost of climate change on mortality rates in China, we employ the publicly available WorldClim-Global Climate Data.", "page": 3, "verified": True}}
-check("21. 任务描述带上论文怎么描述这份数据（用于预测未来）", "To project the cost of climate change" in oc.describe_source(WC, {"domains": []}))
+      "source_evidence": {"quote": "We use the publicly available WorldClim-Global Climate Data to project how climate change affects mortality in China.", "page": 3, "verified": True}}
+check("21. 任务描述带上论文怎么描述这份数据（用于预测未来）", "to project how climate change affects mortality" in oc.describe_source(WC, {"domains": []}))
 WC_URL = "https://www.worldclim.org/data/worldclim21.html"
 WC_TEXT = "WorldClim Global Climate Data. This is WorldClim version 2.1 climate data for 1970-2000. Below you can download the standard (19) WorldClim Bioclimatic variables."
 wc = {"thought": "", "action": "submit_finding", "url": WC_URL, "channel": "public_download", "eligibility": "not_stated",

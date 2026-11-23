@@ -1,9 +1,10 @@
 """
 Run the test suites. No test calls an API or needs a key.
 
-    python run_tests.py            # default public tests: synthetic data only (no key, no network, no paper PDFs)
-    python run_tests.py --papers   # optional paper tests: need local PDFs / saved results that are not distributed;
-                                   # each file reports SKIPPED (exit code 77) and lists what is missing
+    python run_tests.py            # public tests: synthetic data and saved demo results only (no key, no network, no paper PDFs)
+
+Tests that read real paper PDFs are kept in the author's development copy and are not distributed (2026-11-23): the PDFs
+cannot be distributed, and those tests quote the papers at length.
 
 Each test file runs in its own process from the repository root. Exit code 0 = passed, 77 = skipped, anything else = failed.
 """
@@ -17,12 +18,11 @@ DEFAULT = ["test_chain.py", "test_step3.py", "test_final_report.py", "test_v2_fi
            "test_channel_consistency.py",
            "test_time_limit.py", "test_time_resources.py", "test_reset.py",
            "test_site_text.py", "test_site.py"]
-PAPERS = ["test_final_report_papers.py", "test_step1.py", "test_step2.py", "test_contract.py", "test_phase2.py", "test_agent.py"]
 SKIP_CODE = 77
 
 
 def main() -> int:
-    files = PAPERS if "--papers" in sys.argv[1:] else DEFAULT
+    files = DEFAULT
     counts = {"passed": 0, "failed": 0, "skipped": 0}
     for f in files:
         r = subprocess.run([sys.executable, f], cwd=ROOT, capture_output=True, text=True)

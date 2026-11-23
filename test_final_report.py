@@ -1,6 +1,6 @@
 """
 最终报告的测试（K1 适用范围未记录、G1 获取渠道与提供机构）。只检查最终报告文字，不调用 API。
-只用合成文本，不需要 key、网络或论文 PDF（默认公开测试）。用真实保存结果的检查在 test_final_report_papers.py（可选）。
+只用合成文本，不需要 key、网络或论文 PDF（默认公开测试）。用真实保存结果的检查只在开发用的副本里（不随仓库发布，2026-11-23）。测试句都是为本项目编写的合成句。
 
     python test_final_report.py
 """
@@ -43,7 +43,7 @@ def section(text, title):
 
 # ======== K1：旧记录缺少适用范围 ========
 print("K1：适用范围未记录")
-Q_LFS = "The present study utilizes the public-use files of the Canadian LFS (July 2001–June 2015)."
+Q_LFS = "We work with Canadian LFS public-use files, July 2001–June 2015."
 text, rep = report([f"Data. {Q_LFS} End."], [legacy("Canadian LFS", Q_LFS, "public", Q_LFS)])
 src, sec = rep["data_sources"][0], section(text, "Canadian LFS")
 check("K1-1. 旧记录：适用范围记为未记录；分类和核对状态保留（公开、已验证）",
@@ -56,7 +56,7 @@ check("K1-4. 结论下方显示条件原文（含 public-use files）和页码",
 check("K1-5. 各篇论文一行也只写原记录分类，不写“【公开】”",
       "[original record category: public; scope not recorded]" in sec and "[public]" not in sec, sec)
 
-Q_WC = "To project the cost of climate change on mortality rates in China, we employ the publicly available WorldClim-Global Climate Data."
+Q_WC = "We use the publicly available WorldClim-Global Climate Data to project how climate change affects mortality in China."
 text, _ = report([f"Data. {Q_WC} End."], [legacy("WorldClim-Global Climate Data", Q_WC, "public", Q_WC)])
 sec = section(text, "WorldClim")
 check("K1-6. WorldClim 同样处理，不加例外：没有“可以公开获取”，显示适用范围未记录和原文",
@@ -77,19 +77,19 @@ check("K1-8. 对照：新结果给出部分范围 → “可以公开获取（�
 
 # ======== G1：获取渠道和提供机构 ========
 print("\nG1：获取渠道与提供机构")
-Q_URL = "Information in the figure is from the Data Center for Resources and Environmental Sciences, Chinese Academy of Sciences (RESDC; http://www.resdc.cn)."
+Q_URL = "The map draws on data from the Data Center for Resources and Environmental Sciences, Chinese Academy of Sciences (RESDC; http://www.resdc.cn)."
 text, _ = report([f"Data. {Q_URL} End."], [legacy("RESDC climate zones data", Q_URL,
                                                    provider="Data Center for Resources and Environmental Sciences, Chinese Academy of Sciences")])
 sec = section(text, "RESDC")
 # 2026-11-06：网址只是从原文机械提取，标题由“论文记载的获取渠道”改为“论文原文中的链接”，不声称是获取渠道
 check("G1-1. 原文网址显示为“论文原文中的链接”（不声称是获取渠道），附原文和页码，并说明没有核实",
-      "Link in the paper's text: http://www.resdc.cn" in sec and "not claimed to be an access channel" in sec and "Access channel recorded in the paper: http" not in sec and "p. 1: “Information in the figure" in sec
+      "Link in the paper's text: http://www.resdc.cn" in sec and "not claimed to be an access channel" in sec and "Access channel recorded in the paper: http" not in sec and "p. 1: “The map draws on data" in sec
       and "has not checked" in sec, sec)
 check("G1-2. 网址不进入获取条件结论（不再写“原文给出了网址，需要打开确认”），也不标成官方入口",
       "the paper gives a URL" not in sec and "Official entry point:" not in sec, sec)
 check("G1-3. 提供机构单独一行，注明不是获取渠道", "Provider (extracted by the model; not an access channel): Data Center" in sec, sec)
 
-Q_NB = "I merge the LFS data with three-digit industry energy intensity from NBER Productivity Database."
+Q_NB = "The LFS records are linked to industry-level energy intensity taken from the NBER Productivity Database."
 text, _ = report([f"Data. {Q_NB} End."], [legacy("NBER Productivity Database", Q_NB, provider="NBER")])
 sec = section(text, "NBER")
 check("G1-4. 只有机构名时，机构不会成为渠道：渠道写“当前提取结果未记录获取渠道”",

@@ -95,7 +95,7 @@ def related_limitations(src: dict, limitations: list[dict]) -> list[dict]:
     # 2026-11-06 评审决定：样本限制不再按名称自动归给数据源（名称匹配无法区分机构缩写和数据缩写，
     # 例：Michigan tax panel 的限制会因 IRS 挂到别的 IRS 数据下）。所有样本限制留在论文级，由用户看原文判断
     related = []
-    # 获取条件的证据本身也可能是覆盖限制（如 “we can only get the data from 2002 to 2009”）：
+    # 获取条件的证据本身也可能是覆盖限制（如 “the data are only available to us for 2002 to 2009”）：
     # 只有这条证据已经确认针对这个数据（verification == verified）时才归给它
     ev = src.get("access_evidence") or {}
     if (src.get("verification") == "verified" and re.search(r"\bonly\b[^.]*\b(19|20)\d{2}\b", ev.get("quote", ""))

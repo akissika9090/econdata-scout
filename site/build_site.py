@@ -1,5 +1,5 @@
-"""V3 展示ページ（2026-11-23）：保存済みの実行結果から代表例を取り出し、site/index.html を作る。API・ネットワーク不要。
-    python3 site/build_site.py          # site/index.html を書き出す
+"""V3 展示ページ（2026-11-23）：保存済みの実行結果から代表例を取り出し、docs/index.html を作る（GitHub Pages は main の docs/ から公開）。API・ネットワーク不要。
+    python3 site/build_site.py          # docs/index.html を書き出す
     python3 site/build_site.py --check  # 書き出さずに、各代表例の文言が保存結果にそのまま存在するかだけ確認
 
 方針（本人、2026-11-23）：ページには代表例だけを載せる。評価の数字は載せず、リポジトリの評価文書へリンクする。
@@ -150,6 +150,6 @@ if __name__ == "__main__":
         sys.exit(1)
     print(f"代表例 {len(exs)} 件：すべての文言が保存結果にそのまま存在")
     if "--check" not in sys.argv:
-        with open(os.path.join(HERE, "index.html"), "w", encoding="utf-8") as f:
+        with open(os.path.join(ROOT, "docs", "index.html"), "w", encoding="utf-8") as f:
             f.write(page(exs))
-        print("site/index.html を書き出しました")
+        print("docs/index.html を書き出しました")

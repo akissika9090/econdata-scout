@@ -82,7 +82,7 @@ Python 3.14（macOS）で動作確認。標準テストは Python 3.10（Linux�
 
 ## デモ（使い方 1）
 
-- [site/index.html](site/index.html)：紹介ページ（日本語）。ツールの実際の出力から選んだ代表例 3 件（CSMAR、中国工業企業データベース、中国裁判文書網）を、保存済みの実行結果から `python site/build_site.py` で生成します。文言は保存結果のままで、API もネットワークも使いません。評価の数字はこのページには載せず、下の「評価」と [docs/access_catalog_ja.md](docs/access_catalog_ja.md) にまとめています。
+- **紹介ページ（日本語）**：https://akissika9090.github.io/econdata-scout/ （[docs/index.html](docs/index.html)）。ツールの実際の出力から選んだ代表例 3 件（CSMAR、中国工業企業データベース、中国裁判文書網）を、保存済みの実行結果から `python site/build_site.py` で生成します。文言は保存結果のままで、API もネットワークも使いません。評価の数字はこのページには載せず、下の「評価」と [docs/access_catalog_ja.md](docs/access_catalog_ja.md) にまとめています。
 
 - [demo/outputs/access_table_ja.md](demo/outputs/access_table_ja.md)：China Economic Quarterly International 2022 年第 2 巻第 3・4 号の実証論文 13 本（オープンアクセス）の主要データ 23 件。ツールの通常の出力です。
 - [demo/outputs/access_table_round3_replay_ja.md](demo/outputs/access_table_round3_replay_ja.md)：同じ 13 本で、カタログが照合した 12 件を役割（主要・統制・補足）を問わずすべて表示した再生結果。

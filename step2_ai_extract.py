@@ -594,7 +594,7 @@ def dedupe_sources(sources: list[dict]) -> list[dict]:
 
 
 # 来源说明里通常会出现的词：说明“数据从哪里来”。来源证据里一个都没有的，很可能只是变量或研究对象，而不是数据来源。
-# 例：li2020 “This paper evaluated the effect of PM10 and AQI on health-care expenditure” —— PM10、AQI 是变量
+# 例：li2020 “We study how PM10 and the AQI affect health-care spending” —— PM10、AQI 是变量
 PROVENANCE = re.compile(
     r"\b(from|obtained|obtain|provided|provides|provide|collected|collect|derived|drawn|sources?|sourced|released|published|"
     r"publishes|downloaded|download|purchased|issued|compiled|recorded|records|reported|database|dataset|datasets|data ?set|"
@@ -687,7 +687,7 @@ def year_span(period: str | None) -> tuple[int, int] | None:
 
 # ---------- 证据是否针对这个数据：直接证据 / 总体声明 / 无法确认 ----------
 # 引用真实存在、也含有“公开”等说法，还不够：还要看这句话是不是在说这个数据。
-# 例：Zhou 2022 “Publicly available datasets were analyzed in this study.” 是整篇论文的总体声明，
+# 例：Zhou 2022 “All datasets used here are publicly available.” 是整篇论文的总体声明，
 #     没有点名 CFPS，不能直接证明 CFPS 公开。
 
 GENERIC_STATEMENT = re.compile(
